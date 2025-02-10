@@ -7,6 +7,12 @@ namespace Repositories.Base
 {
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
     {
+        // Add DbSet properties for your entities
+        public DbSet<Drink> Drinks { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Order> Orders { get; set; }
+        public DbSet<OrderDetail> OrderDetails { get; set; }
+
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
@@ -51,6 +57,35 @@ namespace Repositories.Base
             {
                 entity.ToTable("UserTokens"); // Rename the table
             });
+            // Configure relationships for your custom entities
+
+            // 1. Drink and Category (1 Drink belongs to 1 Category)
+            builder.Entity<Drink>()
+                .HasOne(d => d.Category)
+                .WithMany()
+                .HasForeignKey(d => d.CategoryId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+
+            // 2. Order and ApplicationUser (1 User can have many Orders)
+            builder.Entity<Order>()
+                .HasOne(o => o.User)
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+
+            // 3. Order and OrderDetail (1 Order can have many OrderDetails)
+            builder.Entity<Order>()
+                .HasMany(o => o.OrderDetails)
+                .WithOne(od => od.Order)
+                .HasForeignKey(od => od.OrderId)
+                .OnDelete(DeleteBehavior.Cascade); // Cascade delete OrderDetails when Order is deleted
+
+            // 4. OrderDetail and Drink (1 Drink can be in many OrderDetails)
+            builder.Entity<OrderDetail>()
+                .HasOne(od => od.Drink)
+                .WithMany()
+                .HasForeignKey(od => od.DrinkId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
         }
     }
 }
