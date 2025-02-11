@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Repositories.Base;
 
 
+
 namespace Repositories.Seeds
 {
     public class Seed
