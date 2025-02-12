@@ -4,11 +4,8 @@ namespace Interfracture.Interfaces
 {
     public interface IUnitOfWork : IDisposable
     {
-        IRepository<Order> Orders { get; }
-        IRepository<ApplicationUser> Users { get; }
-        IRepository<Category> Categories { get; }
-        IRepository<OrderDetail> OrderDetails { get; }
-        IRepository<Drink> Drinks { get; }
+        IGenericRepository<T> GetRepository<T>() where T : class;
+        void Dispose();
         void Save();
     }
 }
