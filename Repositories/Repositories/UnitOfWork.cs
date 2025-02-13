@@ -1,7 +1,5 @@
 ﻿using Interfracture.Base;
-using Interfracture.Entities;
 using Interfracture.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Repositories.Base;
 
 namespace Repositories.Repositories

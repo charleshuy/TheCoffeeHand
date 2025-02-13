@@ -11,6 +11,8 @@ namespace TheCoffeeHand
             // Register all services using DependencyInjection
             builder.Services.AddApplication(builder.Configuration);
 
+
+
             var app = builder.Build();
 
             // Seed data
