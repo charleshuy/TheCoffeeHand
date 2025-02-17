@@ -1,10 +1,39 @@
 ﻿using FirebaseAdmin.Auth;
+using Interfracture.DTOs;
 using Microsoft.AspNetCore.Mvc;
+using Services.Interfaces.Interfaces;
 
 [ApiController]
 [Route("auth")] // Ensure this matches your API request URL
 public class AuthController : ControllerBase
 {
+    private readonly IFirebaseAuthService _firebaseAuthService;
+
+    public AuthController(IFirebaseAuthService firebaseAuthService)
+    {
+        _firebaseAuthService = firebaseAuthService;
+    }
+
+    [HttpPost("firebase-login")]
+    public async Task<IActionResult> FirebaseLogin([FromBody] FirebaseLoginRequest request)
+    {
+        if (string.IsNullOrEmpty(request.IdToken))
+        {
+            return BadRequest(new { message = "ID token is required." });
+        }
+
+        try
+        {
+            var jwtToken = await _firebaseAuthService.SignInWithFirebaseAsync(request.IdToken);
+            return Ok(new { token = jwtToken });
+        }
+        catch (Exception ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
+
+
     [HttpGet("verify-token")]
     public async Task<IActionResult> VerifyToken()
     {
