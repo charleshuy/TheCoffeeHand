@@ -14,7 +14,7 @@ namespace Repositories.Base
         public DbSet<OrderDetail> OrderDetails { get; set; }
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
+        : base(options)
         {
         }
 
@@ -22,71 +22,60 @@ namespace Repositories.Base
         {
             base.OnModelCreating(builder);
 
-            // Customize the schema if needed
-            builder.Entity<ApplicationUser>(entity =>
-            {
-                entity.ToTable("Users"); // Rename the table
-            });
+            // Rename Identity tables
+            builder.Entity<ApplicationUser>().ToTable("Users");
+            builder.Entity<IdentityRole>().ToTable("Roles");
+            builder.Entity<IdentityUserRole<string>>().ToTable("UserRoles");
+            builder.Entity<IdentityUserClaim<string>>().ToTable("UserClaims");
+            builder.Entity<IdentityUserLogin<string>>().ToTable("UserLogins");
+            builder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
+            builder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
 
-            builder.Entity<IdentityRole>(entity =>
-            {
-                entity.ToTable("Roles"); // Rename the table
-            });
+            // ✅ Explicitly define composite key for IdentityUserRole<string>
+            builder.Entity<IdentityUserRole<string>>()
+                .HasKey(ur => new { ur.UserId, ur.RoleId });
 
-            builder.Entity<IdentityUserRole<string>>(entity =>
-            {
-                entity.ToTable("UserRoles"); // Rename the table
-            });
+            builder.Entity<IdentityUserRole<string>>()
+                .HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(ur => ur.UserId)
+                .IsRequired();
 
-            builder.Entity<IdentityUserClaim<string>>(entity =>
-            {
-                entity.ToTable("UserClaims"); // Rename the table
-            });
+            builder.Entity<IdentityUserRole<string>>()
+                .HasOne<IdentityRole>()
+                .WithMany()
+                .HasForeignKey(ur => ur.RoleId)
+                .IsRequired();
 
-            builder.Entity<IdentityUserLogin<string>>(entity =>
-            {
-                entity.ToTable("UserLogins"); // Rename the table
-            });
-
-            builder.Entity<IdentityRoleClaim<string>>(entity =>
-            {
-                entity.ToTable("RoleClaims"); // Rename the table
-            });
-
-            builder.Entity<IdentityUserToken<string>>(entity =>
-            {
-                entity.ToTable("UserTokens"); // Rename the table
-            });
-            // Configure relationships for your custom entities
+            // ✅ Entity relationships
 
             // 1. Drink and Category (1 Drink belongs to 1 Category)
             builder.Entity<Drink>()
                 .HasOne(d => d.Category)
                 .WithMany()
                 .HasForeignKey(d => d.CategoryId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+                .OnDelete(DeleteBehavior.Restrict);
 
             // 2. Order and ApplicationUser (1 User can have many Orders)
             builder.Entity<Order>()
                 .HasOne(o => o.User)
                 .WithMany()
                 .HasForeignKey(o => o.UserId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+                .OnDelete(DeleteBehavior.Restrict);
 
             // 3. Order and OrderDetail (1 Order can have many OrderDetails)
             builder.Entity<Order>()
                 .HasMany(o => o.OrderDetails)
                 .WithOne(od => od.Order)
                 .HasForeignKey(od => od.OrderId)
-                .OnDelete(DeleteBehavior.Cascade); // Cascade delete OrderDetails when Order is deleted
+                .OnDelete(DeleteBehavior.Cascade);
 
             // 4. OrderDetail and Drink (1 Drink can be in many OrderDetails)
             builder.Entity<OrderDetail>()
                 .HasOne(od => od.Drink)
                 .WithMany()
                 .HasForeignKey(od => od.DrinkId)
-                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
-
