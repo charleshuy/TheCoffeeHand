@@ -12,7 +12,8 @@ namespace Services
             services.AddScoped<IAuthenticationService, AuthenticationService>();
             services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
             services.AddScoped<IUserServices, UserServices>();
-            services.AddAutoMapper(typeof(UserProfile)); // Register AutoMapper
+            services.AddScoped<ICategoryService, CategoryServices>();
+            services.AddAutoMapper(typeof(UserProfile)); 
         }
     }
 }

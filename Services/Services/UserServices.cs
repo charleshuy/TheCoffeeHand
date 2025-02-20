@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
 using Interfracture.Base;
 using Interfracture.DTOs;
 using Interfracture.Entities;
@@ -20,14 +21,14 @@ namespace Services.Services
             _mapper = mapper;
         }
 
-        public async Task<BasePaginatedList<UserResponseDTO>> SearchUsersAsync(
-    string? firstName,
-    string? lastName,
-    string? phone,
-    string? email,
-    string? roleName,
-    int pageNumber,
-    int pageSize)
+        public async Task<BasePaginatedList<UserDTO>> SearchUsersAsync(
+            string? firstName,
+            string? lastName,
+            string? phone,
+            string? email,
+            string? roleName,
+            int pageNumber,
+            int pageSize)
         {
             var usersQuery = _unitOfWork.GetRepository<ApplicationUser>().Entities.AsQueryable();
 
@@ -57,33 +58,36 @@ namespace Services.Services
                 }
                 else
                 {
-                    return new BasePaginatedList<UserResponseDTO>(new List<UserResponseDTO>(), 0, pageNumber, pageSize);
+                    return new BasePaginatedList<UserDTO>(new List<UserDTO>(), 0, pageNumber, pageSize);
                 }
             }
 
             int totalItems = await usersQuery.CountAsync();
 
-            // Optimized query: Direct projection instead of retrieving entire entity
+            // Apply pagination and project using AutoMapper
             var users = await usersQuery
-                .OrderBy(u => u.FirstName) // Optional: Improve pagination predictability
+                .OrderBy(u => u.Email)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new UserResponseDTO
-                {
-                    Id = u.Id,
-                    FirstName = u.FirstName,
-                    LastName = u.LastName,
-                    Email = u.Email,
-                    PhoneNumber = u.PhoneNumber,
-                    Roles = userRoleRepo
-                        .Where(ur => ur.UserId == u.Id)
-                        .Join(roleRepo, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
-                        .ToList()
-                })
+                .ProjectTo<UserDTO>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            return new BasePaginatedList<UserResponseDTO>(users, totalItems, pageNumber, pageSize);
-        }
+            // Fetch roles separately and assign them
+            var userIdsList = users.Select(u => u.Id).ToList();
+            var userRoles = await userRoleRepo
+                .Where(ur => userIdsList.Contains(ur.UserId))
+                .Join(roleRepo, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+                .ToListAsync();
 
+            foreach (var user in users)
+            {
+                user.Roles = userRoles
+                    .Where(ur => ur.UserId == user.Id)
+                    .Select(ur => ur.Name)
+                    .ToList();
+            }
+
+            return new BasePaginatedList<UserDTO>(users, totalItems, pageNumber, pageSize);
+        }
     }
 }

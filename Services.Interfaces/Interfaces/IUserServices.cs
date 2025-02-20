@@ -7,7 +7,7 @@ namespace Services.Interfaces.Interfaces
 {
     public interface IUserServices
     {
-        Task<BasePaginatedList<UserResponseDTO>> SearchUsersAsync(
+        Task<BasePaginatedList<UserDTO>> SearchUsersAsync(
             string? firstName,
             string? lastName,
             string? phone,
