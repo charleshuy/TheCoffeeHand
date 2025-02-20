@@ -9,8 +9,8 @@ namespace Services.Services.MapperProfiles
     {
         public UserProfile()
         {
-            CreateMap<ApplicationUser, UserResponseDTO>()
-                .ForMember(dest => dest.Roles, opt => opt.Ignore());
+            CreateMap<ApplicationUser, UserDTO>()
+                .ForMember(dest => dest.Roles, opt => opt.Ignore()).ReverseMap();
         }
     }
 }
