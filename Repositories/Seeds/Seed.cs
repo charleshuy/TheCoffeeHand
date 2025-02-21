@@ -4,8 +4,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Repositories.Base;
 
-
-
 namespace Repositories.Seeds
 {
     public class Seed
@@ -13,7 +11,7 @@ namespace Repositories.Seeds
         public static async Task Initialize(IServiceProvider serviceProvider)
         {
             var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
-            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
             var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
             // Seed roles
@@ -32,14 +30,14 @@ namespace Repositories.Seeds
             await SeedOrders(context, userManager);
         }
 
-        private static async Task SeedRoles(RoleManager<IdentityRole> roleManager)
+        private static async Task SeedRoles(RoleManager<ApplicationRole> roleManager)
         {
             string[] roleNames = { "Admin", "User" };
             foreach (var roleName in roleNames)
             {
                 if (!await roleManager.RoleExistsAsync(roleName))
                 {
-                    await roleManager.CreateAsync(new IdentityRole(roleName));
+                    await roleManager.CreateAsync(new ApplicationRole { Name = roleName });
                 }
             }
         }

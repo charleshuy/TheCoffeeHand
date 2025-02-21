@@ -1,10 +1,11 @@
 ﻿using FirebaseAdmin.Auth;
 using Interfracture.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.Interfaces.Interfaces;
 
 [ApiController]
-[Route("auth")] // Ensure this matches your API request URL
+[Route("api/auth")]
 public class AuthController : ControllerBase
 {
     private readonly IFirebaseAuthService _firebaseAuthService;
@@ -22,16 +23,24 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "ID token is required." });
         }
 
-        try
-        {
-            var jwtToken = await _firebaseAuthService.SignInWithFirebaseAsync(request.IdToken);
-            return Ok(new { token = jwtToken });
-        }
-        catch (Exception ex)
-        {
-            return Unauthorized(new { message = ex.Message });
-        }
+        var jwtToken = await _firebaseAuthService.SignInWithFirebaseAsync(request.IdToken);
+        return Ok(new { token = jwtToken });
     }
+
+    [HttpGet("user-auth")]
+    [Authorize(AuthenticationSchemes = "Firebase,Jwt")]
+    public IActionResult GetUserInfo()
+    {
+        return Ok("Access granted to authenticated user!");
+    }
+
+    [HttpGet("admin-only")] 
+    [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
+    public IActionResult AdminOnly()
+    {
+        return Ok("Access granted for Admin!");
+    }
+
 
 
     [HttpGet("verify-token")]

@@ -23,7 +23,7 @@ namespace TheCoffeeHand.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetCategoryById(string id)
+        public async Task<IActionResult> GetCategoryById(Guid id)
         {
             var category = await _categoryService.GetCategoryByIdAsync(id);
             if (category == null)
@@ -43,7 +43,7 @@ namespace TheCoffeeHand.Controllers
 
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateCategory(string id, [FromBody] CategoryRequestDTO categoryDTO)
+        public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CategoryRequestDTO categoryDTO)
         {
             var updated = await _categoryService.UpdateCategoryAsync(id, categoryDTO);
             if (!updated)
@@ -53,7 +53,7 @@ namespace TheCoffeeHand.Controllers
         }
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteCategory(string id)
+        public async Task<IActionResult> DeleteCategory(Guid id)
         {
             var deleted = await _categoryService.DeleteCategoryAsync(id);
             if (!deleted)

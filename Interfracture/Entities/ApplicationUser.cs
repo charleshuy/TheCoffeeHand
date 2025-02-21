@@ -3,13 +3,11 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Interfracture.Entities
 {
-    public class ApplicationUser : IdentityUser
+    public class ApplicationUser : IdentityUser<Guid>
     {
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public DateTime DateOfBirth { get; set; }
-
-        // Explicitly define roles
-        public virtual ICollection<IdentityUserRole<string>> UserRoles { get; set; } = new List<IdentityUserRole<string>>();
+        public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
     }
 }

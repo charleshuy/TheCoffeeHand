@@ -34,7 +34,7 @@ namespace Services.Services
             return _mapper.Map<CategoryResponseDTO>(category);
         }
 
-        public async Task<CategoryResponseDTO?> GetCategoryByIdAsync(string id)
+        public async Task<CategoryResponseDTO?> GetCategoryByIdAsync(Guid id)
         {
             var categoryRepo = _unitOfWork.GetRepository<Category>();
 
@@ -62,7 +62,7 @@ namespace Services.Services
         }
 
 
-        public async Task<bool> UpdateCategoryAsync(string id, CategoryRequestDTO categoryDTO)
+        public async Task<bool> UpdateCategoryAsync(Guid id, CategoryRequestDTO categoryDTO)
         {
             var categoryRepo = _unitOfWork.GetRepository<Category>();
 
@@ -78,7 +78,7 @@ namespace Services.Services
             return true;
         }
 
-        public async Task<bool> DeleteCategoryAsync(string id)
+        public async Task<bool> DeleteCategoryAsync(Guid id)
         {
             var categoryRepo = _unitOfWork.GetRepository<Category>();
 
