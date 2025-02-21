@@ -49,9 +49,12 @@ namespace TheCoffeeHand
         {
             if (FirebaseApp.DefaultInstance == null)
             {
+                string adminSdkRelativePath = configuration["Firebase:AdminSDKPath"];
+                string adminSdkFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, adminSdkRelativePath);
+
                 FirebaseApp.Create(new AppOptions()
                 {
-                    Credential = GoogleCredential.FromFile(configuration["Firebase:AdminSDKPath"])
+                    Credential = GoogleCredential.FromFile(adminSdkFullPath)
                 });
             }
             var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
