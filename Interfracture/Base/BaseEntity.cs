@@ -1,5 +1,6 @@
 ﻿using Core.Utils;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 
 namespace Interfracture.Base
@@ -8,12 +9,13 @@ namespace Interfracture.Base
     {
         protected BaseEntity()
         {
-            Id = Guid.NewGuid().ToString().ToUpper();
+            Id = Guid.NewGuid();
             CreatedTime = LastUpdatedTime = CoreHelper.SystemTimeNow;
         }
 
         [Key]
-        public string Id { get; set; }
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public Guid Id { get; set; }
         [Display(Name = "Created By")]
         public string? CreatedBy { get; set; }
         [Display(Name = "Last Updated By")]

@@ -9,10 +9,10 @@ namespace Interfracture.Entities
         public DateTimeOffset? Date { get; set; }
         public EnumOrderStatus? Status { get; set; }
         public double TotalPrice { get; set; } = 0;
-        public string? UserId { get; set; }
+        public Guid? UserId { get; set; }
         public virtual ApplicationUser? User { get; set; }
 
         // Navigation properties
-        public virtual List<OrderDetail>? OrderDetails { get; set; }
+        public virtual ICollection<OrderDetail>? OrderDetails { get; set; }
     }
 }

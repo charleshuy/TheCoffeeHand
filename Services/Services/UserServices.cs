@@ -14,11 +14,13 @@ namespace Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public UserServices(IUnitOfWork unitOfWork, IMapper mapper)
+        public UserServices(IUnitOfWork unitOfWork, IMapper mapper, UserManager<ApplicationUser> userManager)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _userManager = userManager;
         }
 
         public async Task<BasePaginatedList<UserDTO>> SearchUsersAsync(
@@ -32,7 +34,7 @@ namespace Services.Services
         {
             var usersQuery = _unitOfWork.GetRepository<ApplicationUser>().Entities.AsQueryable();
 
-            // Apply filters
+            // ✅ Apply filters
             if (!string.IsNullOrWhiteSpace(firstName))
                 usersQuery = usersQuery.Where(u => u.FirstName.Contains(firstName));
 
@@ -45,26 +47,16 @@ namespace Services.Services
             if (!string.IsNullOrWhiteSpace(email))
                 usersQuery = usersQuery.Where(u => u.Email.Contains(email));
 
-            var roleRepo = _unitOfWork.GetRepository<IdentityRole>().Entities;
-            var userRoleRepo = _unitOfWork.GetRepository<IdentityUserRole<string>>().Entities;
-
             if (!string.IsNullOrWhiteSpace(roleName))
             {
-                var role = await roleRepo.FirstOrDefaultAsync(r => r.Name == roleName);
-                if (role != null)
-                {
-                    var userIds = userRoleRepo.Where(ur => ur.RoleId == role.Id).Select(ur => ur.UserId);
-                    usersQuery = usersQuery.Where(u => userIds.Contains(u.Id));
-                }
-                else
-                {
-                    return new BasePaginatedList<UserDTO>(new List<UserDTO>(), 0, pageNumber, pageSize);
-                }
+                var usersInRole = await _userManager.GetUsersInRoleAsync(roleName);
+                var userIds = usersInRole.Select(u => u.Id).ToList();
+                usersQuery = usersQuery.Where(u => userIds.Contains(u.Id));
             }
 
             int totalItems = await usersQuery.CountAsync();
 
-            // Apply pagination and project using AutoMapper
+            // ✅ Apply pagination and project using AutoMapper
             var users = await usersQuery
                 .OrderBy(u => u.Email)
                 .Skip((pageNumber - 1) * pageSize)
@@ -72,19 +64,11 @@ namespace Services.Services
                 .ProjectTo<UserDTO>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            // Fetch roles separately and assign them
-            var userIdsList = users.Select(u => u.Id).ToList();
-            var userRoles = await userRoleRepo
-                .Where(ur => userIdsList.Contains(ur.UserId))
-                .Join(roleRepo, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
-                .ToListAsync();
-
+            // ✅ Fetch roles using UserManager and assign them
             foreach (var user in users)
             {
-                user.Roles = userRoles
-                    .Where(ur => ur.UserId == user.Id)
-                    .Select(ur => ur.Name)
-                    .ToList();
+                var appUser = await _userManager.FindByIdAsync(user.Id);
+                user.Roles = appUser != null ? (await _userManager.GetRolesAsync(appUser)).ToList() : new List<string>();
             }
 
             return new BasePaginatedList<UserDTO>(users, totalItems, pageNumber, pageSize);

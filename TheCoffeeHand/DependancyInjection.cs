@@ -9,6 +9,8 @@ using Microsoft.OpenApi.Models;
 using Repositories;
 using Repositories.Base;
 using Services;
+using System.Security.Claims;
+using System.Text;
 
 namespace TheCoffeeHand
 {
@@ -25,12 +27,12 @@ namespace TheCoffeeHand
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             // Add Identity
-            services.AddIdentity<ApplicationUser, IdentityRole>()
+            services.AddIdentity<ApplicationUser, ApplicationRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
             // Add Firebase Authentication
-            services.AddFirebaseAuthentication(configuration);
+            services.AddAuthentication(configuration);
 
             // Add Authorization
             services.AddAuthorization();
@@ -43,29 +45,50 @@ namespace TheCoffeeHand
             services.AddEndpointsApiExplorer();
         }
 
-        private static void AddFirebaseAuthentication(this IServiceCollection services, IConfiguration configuration)
+        private static void AddAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
-            // Initialize Firebase Admin SDK
-            FirebaseApp.Create(new AppOptions()
+            if (FirebaseApp.DefaultInstance == null)
             {
-                Credential = GoogleCredential.FromFile(configuration["Firebase:AdminSDKPath"])
-            });
-
-            // Configure Firebase Authentication using JWT Bearer
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
+                FirebaseApp.Create(new AppOptions()
                 {
-                    options.Authority = $"https://securetoken.google.com/{configuration["Firebase:ProjectId"]}";
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuer = true,
-                        ValidIssuer = $"https://securetoken.google.com/{configuration["Firebase:ProjectId"]}",
-                        ValidateAudience = true,
-                        ValidAudience = configuration["Firebase:ProjectId"],
-                        ValidateLifetime = true
-                    };
+                    Credential = GoogleCredential.FromFile(configuration["Firebase:AdminSDKPath"])
                 });
+            }
+            var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
+
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            // 🔥 Firebase Authentication
+            .AddJwtBearer("Firebase", options =>
+            {
+                options.Authority = $"https://securetoken.google.com/{configuration["Firebase:ProjectId"]}";
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = $"https://securetoken.google.com/{configuration["Firebase:ProjectId"]}",
+                    ValidateAudience = true,
+                    ValidAudience = configuration["Firebase:ProjectId"],
+                    ValidateLifetime = true
+                };
+            })
+            // 🔑 Custom JWT Authentication
+            .AddJwtBearer("Jwt", options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = false, // ❌ No Issuer validation
+                    ValidateAudience = false, // ❌ No Audience validation
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = jwtKey,
+                    RoleClaimType = ClaimTypes.Role
+                };
+            });
         }
+
 
         private static void AddSwaggerDocumentation(this IServiceCollection services)
         {
