@@ -41,8 +41,6 @@ public class AuthController : ControllerBase
         return Ok("Access granted for Admin!");
     }
 
-
-
     [HttpGet("verify-token")]
     public async Task<IActionResult> VerifyToken()
     {

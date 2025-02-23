@@ -1,4 +1,4 @@
-using Repositories.Seeds; // For Seed class
+using Repositories.Seeds;
 
 namespace TheCoffeeHand
 {
@@ -36,6 +36,7 @@ namespace TheCoffeeHand
             app.UseAuthorization();
 
             app.MapControllers();
+
 
             app.Run();
         }

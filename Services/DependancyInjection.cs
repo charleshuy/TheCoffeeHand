@@ -1,7 +1,9 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Services.Interfaces;
 using Services.Interfaces.Interfaces;
 using Services.Services;
 using Services.Services.MapperProfiles;
+using Services.Services.RedisCache;
 
 namespace Services
 {
@@ -13,7 +15,8 @@ namespace Services
             services.AddScoped<IFirebaseAuthService, FirebaseAuthService>();
             services.AddScoped<IUserServices, UserServices>();
             services.AddScoped<ICategoryService, CategoryServices>();
-            services.AddAutoMapper(typeof(UserProfile)); 
+            services.AddScoped<IRedisCacheServices, RedisCacheServices>();
+            services.AddAutoMapper(typeof(UserProfile));
         }
     }
 }
