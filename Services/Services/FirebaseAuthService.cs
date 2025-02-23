@@ -21,7 +21,7 @@ namespace Services.Services
             _configuration = configuration;
         }
 
-        public async Task<string> SignInWithFirebaseAsync(string idToken)
+        public async Task<string> SignInWithFirebaseAsync(string idToken, string? fcmToken)
         {
             try
             {
@@ -45,10 +45,11 @@ namespace Services.Services
                     // ✅ Create a new user
                     user = new ApplicationUser
                     {
-                        UserName = username, 
+                        UserName = username,
                         Email = email,
                         FirstName = firstName,
-                        LastName = lastName
+                        LastName = lastName,
+                        FcmToken = fcmToken // ✅ Store FCM Token
                     };
 
                     var result = await _userManager.CreateAsync(user);
@@ -60,6 +61,15 @@ namespace Services.Services
                     // ✅ Assign default role if needed
                     await _userManager.AddToRoleAsync(user, "User");
                 }
+                else
+                {
+                    // ✅ Update FCM token if user already exists
+                    if (!string.IsNullOrEmpty(fcmToken))
+                    {
+                        user.FcmToken = fcmToken;
+                        await _userManager.UpdateAsync(user);
+                    }
+                }
 
                 // ✅ Generate JWT Token with roles
                 return await GenerateJwtToken(user, _userManager);
@@ -69,6 +79,7 @@ namespace Services.Services
                 throw new Exception("Invalid Firebase token.");
             }
         }
+
 
 
 

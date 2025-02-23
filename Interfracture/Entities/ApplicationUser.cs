@@ -7,6 +7,7 @@ namespace Interfracture.Entities
     {
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
+        public string? FcmToken { get; set; }
         public DateTime DateOfBirth { get; set; }
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
     }

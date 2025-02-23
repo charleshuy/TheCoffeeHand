@@ -4,23 +4,27 @@ using Interfracture.Base;
 using Interfracture.DTOs;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Services.Interfaces.Interfaces;
+using System.Security.Claims;
 
 namespace Services.Services
 {
     public class UserServices : IUserServices
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public UserServices(IUnitOfWork unitOfWork, IMapper mapper, UserManager<ApplicationUser> userManager)
+        public UserServices(IUnitOfWork unitOfWork, IMapper mapper, UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userManager = userManager;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<BasePaginatedList<UserDTO>> SearchUsersAsync(
@@ -72,6 +76,30 @@ namespace Services.Services
             }
 
             return new BasePaginatedList<UserDTO>(users, totalItems, pageNumber, pageSize);
+        }
+        public async Task<UserDTO?> GetUserByIdAsync(string userId)
+        {
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null) return null;
+
+            var userDto = _mapper.Map<UserDTO>(user);
+            userDto.Roles = (await _userManager.GetRolesAsync(user)).ToList();
+
+            return userDto;
+        }
+        public async Task<UserDTO?> GetCurrentUserAsync()
+        {
+
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+                return null;
+
+            return await GetUserByIdAsync(userId);
+        }
+        public string? GetCurrentUserId()
+        {
+            var user = _httpContextAccessor.HttpContext?.User;
+            return user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
     }
 }

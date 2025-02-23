@@ -16,6 +16,8 @@ namespace Services
             services.AddScoped<IUserServices, UserServices>();
             services.AddScoped<ICategoryService, CategoryServices>();
             services.AddScoped<IRedisCacheServices, RedisCacheServices>();
+            //services.AddScoped<IFCMService, FCMService>();
+            services.AddHttpClient<IFCMService, FCMService>();
             services.AddAutoMapper(typeof(UserProfile));
         }
     }
