@@ -1,26 +1,18 @@
-﻿
-
-namespace Interfracture.Base
+﻿namespace Interfracture.Base
 {
     public class BasePaginatedList<T>
     {
+        public List<T> Items { get; private set; } = new(); // Initialize to prevent null issues
 
-        public IReadOnlyCollection<T> Items { get; private set; }
-
-        // Property to store the total number of items
         public int TotalItems { get; private set; }
-
-        // Property to store the current page number
         public int CurrentPage { get; private set; }
-
-        // Property to store the total number of pages
         public int TotalPages { get; private set; }
-
-        // Property to store the number of items per page
         public int PageSize { get; private set; }
 
-        // Constructor to initialize the paginated list
-        public BasePaginatedList(IReadOnlyCollection<T> items, int count, int pageNumber, int pageSize)
+        // Parameterless constructor for deserialization
+        public BasePaginatedList() { }
+
+        public BasePaginatedList(List<T> items, int count, int pageNumber, int pageSize)
         {
             TotalItems = count;
             CurrentPage = pageNumber;
@@ -29,16 +21,13 @@ namespace Interfracture.Base
             Items = items;
         }
 
-        // Method to check if there is a previous page
         public bool HasPreviousPage => CurrentPage > 1;
-
-        // Method to check if there is a next page
         public bool HasNextPage => CurrentPage < TotalPages;
 
         public static BasePaginatedList<T> Create(IEnumerable<T> source, int pageNumber, int pageSize)
         {
-            var count = source.Count(); // Tổng số phần tử
-            var items = source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList(); // Lấy dữ liệu theo trang
+            var count = source.Count();
+            var items = source.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
             return new BasePaginatedList<T>(items, count, pageNumber, pageSize);
         }
     }

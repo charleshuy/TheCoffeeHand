@@ -7,5 +7,6 @@ namespace Interfracture.Interfaces
         IGenericRepository<T> GetRepository<T>() where T : class;
         void Dispose();
         void Save();
+        Task SaveAsync();
     }
 }

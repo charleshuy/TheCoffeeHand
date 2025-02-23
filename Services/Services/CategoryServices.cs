@@ -29,7 +29,7 @@ namespace Services.Services
             category.CreatedTime = category.LastUpdatedTime = CoreHelper.SystemTimeNow;
 
             await categoryRepo.InsertAsync(category);
-            _unitOfWork.Save();
+            await _unitOfWork.SaveAsync();
 
             return _mapper.Map<CategoryResponseDTO>(category);
         }
@@ -37,46 +37,48 @@ namespace Services.Services
         public async Task<CategoryResponseDTO?> GetCategoryByIdAsync(Guid id)
         {
             var categoryRepo = _unitOfWork.GetRepository<Category>();
-
             var category = await categoryRepo.Entities.FirstOrDefaultAsync(c => c.Id == id);
+
             return category == null ? null : _mapper.Map<CategoryResponseDTO>(category);
         }
-
 
         public async Task<BasePaginatedList<CategoryResponseDTO>> GetAllCategoriesAsync(int pageNumber, int pageSize)
         {
             var categoryRepo = _unitOfWork.GetRepository<Category>();
-
             var query = categoryRepo.Entities.Where(c => c.DeletedTime == null);
             int totalItems = await query.CountAsync();
 
             var categories = await query
-                .OrderBy(c => c.Name) // Sorting by Name, change as needed
+                .OrderBy(c => c.Name)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ProjectTo<CategoryResponseDTO>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-
             return new BasePaginatedList<CategoryResponseDTO>(categories, totalItems, pageNumber, pageSize);
         }
 
-
-        public async Task<bool> UpdateCategoryAsync(Guid id, CategoryRequestDTO categoryDTO)
+        public async Task<CategoryResponseDTO> UpdateCategoryAsync(Guid id, CategoryRequestDTO categoryDTO)
         {
             var categoryRepo = _unitOfWork.GetRepository<Category>();
 
             var category = await categoryRepo.Entities.FirstOrDefaultAsync(c => c.Id == id);
-            if (category == null || category.DeletedTime != null)
-                return false;
+            if (category == null)
+                throw new KeyNotFoundException("Category not found.");
 
-            category.Name = categoryDTO.Name ?? category.Name;
+            if (category.DeletedTime != null)
+                throw new InvalidOperationException("Cannot update a deleted category.");
+
+            // Map only provided properties while keeping existing values
+            _mapper.Map(categoryDTO, category);
             category.LastUpdatedTime = CoreHelper.SystemTimeNow;
 
             categoryRepo.Update(category);
-            _unitOfWork.Save();
-            return true;
+            await _unitOfWork.SaveAsync();
+
+            return _mapper.Map<CategoryResponseDTO>(category);
         }
+
 
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
@@ -89,7 +91,8 @@ namespace Services.Services
             category.DeletedTime = CoreHelper.SystemTimeNow;
 
             categoryRepo.Update(category);
-            _unitOfWork.Save();
+            await _unitOfWork.SaveAsync();
+
             return true;
         }
     }

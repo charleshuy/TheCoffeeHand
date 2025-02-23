@@ -9,6 +9,7 @@ using Microsoft.OpenApi.Models;
 using Repositories;
 using Repositories.Base;
 using Services;
+using StackExchange.Redis;
 using System.Security.Claims;
 using System.Text;
 
@@ -24,12 +25,14 @@ namespace TheCoffeeHand
 
             // Add DbContext with SQL Server
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
 
             // Add Identity
             services.AddIdentity<ApplicationUser, ApplicationRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
+
+            services.AddDistributedMemoryCache();
 
             // Add Firebase Authentication
             services.AddAuthentication(configuration);
@@ -43,6 +46,24 @@ namespace TheCoffeeHand
             // Add Controllers and API-related services
             services.AddControllers();
             services.AddEndpointsApiExplorer();
+
+            // Add Redis Service
+            services.AddSingleton<IConnectionMultiplexer>(_ =>
+            {
+                var redisHost = configuration["Redis:Host"];
+                var redisPort = configuration["Redis:Port"];
+                var redisPassword = configuration["Redis:Password"];
+
+                var options = new ConfigurationOptions
+                {
+                    EndPoints = { $"{redisHost}:{redisPort}" },
+                    Password = redisPassword,
+                    AbortOnConnectFail = false
+                };
+
+                return ConnectionMultiplexer.Connect(options);
+            });
+
         }
 
         private static void AddAuthentication(this IServiceCollection services, IConfiguration configuration)
@@ -91,7 +112,6 @@ namespace TheCoffeeHand
                 };
             });
         }
-
 
         private static void AddSwaggerDocumentation(this IServiceCollection services)
         {
