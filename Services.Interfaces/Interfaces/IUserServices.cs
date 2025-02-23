@@ -15,5 +15,7 @@ namespace Services.Interfaces.Interfaces
             string? roleName,
             int pageNumber,
             int pageSize);
+        Task<UserDTO?> GetUserByIdAsync(string userId);
+        Task<UserDTO?> GetCurrentUserAsync();
     }
 }

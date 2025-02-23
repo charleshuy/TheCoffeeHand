@@ -7,6 +7,7 @@ namespace Interfracture.DTOs
     }
     public class FirebaseLoginRequest
     {
-        public string IdToken { get; set; }
+        public required string IdToken { get; set; } 
+        public string? fmcToken { get; set; }
     }
 }

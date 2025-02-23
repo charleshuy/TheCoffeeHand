@@ -9,10 +9,12 @@ using Services.Interfaces.Interfaces;
 public class AuthController : ControllerBase
 {
     private readonly IFirebaseAuthService _firebaseAuthService;
+    private readonly IUserServices _userService;
 
-    public AuthController(IFirebaseAuthService firebaseAuthService)
+    public AuthController(IFirebaseAuthService firebaseAuthService, IUserServices userServices)
     {
         _firebaseAuthService = firebaseAuthService;
+        _userService = userServices;
     }
 
     [HttpPost("firebase-login")]
@@ -23,7 +25,7 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = "ID token is required." });
         }
 
-        var jwtToken = await _firebaseAuthService.SignInWithFirebaseAsync(request.IdToken);
+        var jwtToken = await _firebaseAuthService.SignInWithFirebaseAsync(request.IdToken, request.fmcToken);
         return Ok(new { token = jwtToken });
     }
 
@@ -39,6 +41,16 @@ public class AuthController : ControllerBase
     public IActionResult AdminOnly()
     {
         return Ok("Access granted for Admin!");
+    }
+
+    [HttpGet("profile")]
+    [Authorize(AuthenticationSchemes = "Firebase,Jwt")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        var user = await _userService.GetCurrentUserAsync();
+        if (user == null) return Unauthorized();
+
+        return Ok(user);
     }
 
     [HttpGet("verify-token")]
