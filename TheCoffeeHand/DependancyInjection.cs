@@ -23,7 +23,7 @@ namespace TheCoffeeHand
             services.AddServiceLayer();
             services.AddAutoMapper(typeof(Services.DependencyInjection).Assembly);
 
-            // Add DbContext with SQL Server
+            // Add DbContext with SQLite
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
 
