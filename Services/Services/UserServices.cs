@@ -1,12 +1,12 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Interfracture.Base;
-using Interfracture.DTOs;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Services.DTOs;
 using Services.Interfaces.Interfaces;
 using System.Security.Claims;
 

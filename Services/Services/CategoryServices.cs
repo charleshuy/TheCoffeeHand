@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Interfracture.DTOs;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +6,7 @@ using Core.Utils;
 using Services.Interfaces.Interfaces;
 using Interfracture.Base;
 using AutoMapper.QueryableExtensions;
+using Services.DTOs;
 
 namespace Services.Services
 {

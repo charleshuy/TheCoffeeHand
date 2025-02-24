@@ -1,7 +1,5 @@
-﻿
-using Interfracture.Base;
-using Interfracture.DTOs;
-using Interfracture.Entities;
+﻿using Interfracture.Base;
+using Services.DTOs;
 
 namespace Services.Interfaces.Interfaces
 {
