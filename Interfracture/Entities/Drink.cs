@@ -14,6 +14,5 @@ namespace Interfracture.Entities
         // Navigation properties
         public virtual ICollection<OrderDetail> OrderDetails { get; set; } = new List<OrderDetail>();
         public virtual ICollection<Recipe> Recipes { get; set; } = new List<Recipe>();
-
     }
 }

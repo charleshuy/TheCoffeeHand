@@ -1,4 +1,5 @@
 using Repositories.Seeds;
+using TheCoffeeHand.MiddleWares;
 
 namespace TheCoffeeHand
 {
@@ -30,6 +31,8 @@ namespace TheCoffeeHand
             }
 
             app.UseHttpsRedirection();
+
+            app.UseMiddleware<ExceptionMiddleware>();
 
             // Enable authentication and authorization
             app.UseAuthentication();

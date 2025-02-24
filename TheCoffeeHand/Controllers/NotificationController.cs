@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
-using Services.Interfaces.Interfaces;
+using Services.ServiceInterfaces;
 using Services.Services;
 
 namespace TheCoffeeHand.Controllers

@@ -3,7 +3,7 @@ using Interfracture.Entities;
 using Services.DTOs;
 
 
-namespace Services.Services.MapperProfiles
+namespace Services.MapperProfiles
 {
     public class UserProfile : Profile
     {

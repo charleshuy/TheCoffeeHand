@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
-using Services.Interfaces.Interfaces;
+using Services.ServiceInterfaces;
 
 [ApiController]
 [Route("api/auth")]

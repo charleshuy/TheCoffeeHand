@@ -1,10 +1,8 @@
-﻿
-
-using AutoMapper;
+﻿using AutoMapper;
 using Interfracture.Entities;
 using Services.DTOs;
 
-namespace Services.Services.MapperProfiles
+namespace Services.MapperProfiles
 {
     public class CategoryProfile : Profile
     {

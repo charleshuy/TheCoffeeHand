@@ -3,11 +3,13 @@ using AutoMapper.QueryableExtensions;
 using Interfracture.Base;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
+using Interfracture.PaggingItems;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Services.DTOs;
-using Services.Interfaces.Interfaces;
+using Services.ServiceInterfaces;
 using System.Security.Claims;
 
 namespace Services.Services
@@ -18,16 +20,21 @@ namespace Services.Services
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly IRedisCacheServices _cacheService;
+        private readonly IMemoryCache _cache;
 
-        public UserServices(IUnitOfWork unitOfWork, IMapper mapper, UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor)
+        public UserServices(IUnitOfWork unitOfWork, IMapper mapper, UserManager<ApplicationUser> userManager, IHttpContextAccessor httpContextAccessor, IRedisCacheServices cacheService, IMemoryCache cache)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _userManager = userManager;
             _httpContextAccessor = httpContextAccessor;
+            _cache = cache;
+            _cacheService = cacheService;
         }
 
-        public async Task<BasePaginatedList<UserDTO>> SearchUsersAsync(
+
+        public async Task<PaginatedList<UserDTO>> SearchUsersAsync(
             string? firstName,
             string? lastName,
             string? phone,
@@ -36,9 +43,13 @@ namespace Services.Services
             int pageNumber,
             int pageSize)
         {
+            string cacheKey = $"users_{firstName}_{lastName}_{phone}_{email}_{roleName}_{pageNumber}_{pageSize}";
+
+            var cachedUsers = await _cacheService.GetAsync<PaginatedList<UserDTO>>(cacheKey);
+            if (cachedUsers != null) return cachedUsers; // ✅ Return from cache if found
+
             var usersQuery = _unitOfWork.GetRepository<ApplicationUser>().Entities.AsQueryable();
 
-            // ✅ Apply filters
             if (!string.IsNullOrWhiteSpace(firstName))
                 usersQuery = usersQuery.Where(u => u.FirstName.Contains(firstName));
 
@@ -59,8 +70,6 @@ namespace Services.Services
             }
 
             int totalItems = await usersQuery.CountAsync();
-
-            // ✅ Apply pagination and project using AutoMapper
             var users = await usersQuery
                 .OrderBy(u => u.Email)
                 .Skip((pageNumber - 1) * pageSize)
@@ -68,38 +77,78 @@ namespace Services.Services
                 .ProjectTo<UserDTO>(_mapper.ConfigurationProvider)
                 .ToListAsync();
 
-            // ✅ Fetch roles using UserManager and assign them
             foreach (var user in users)
             {
                 var appUser = await _userManager.FindByIdAsync(user.Id);
                 user.Roles = appUser != null ? (await _userManager.GetRolesAsync(appUser)).ToList() : new List<string>();
             }
 
-            return new BasePaginatedList<UserDTO>(users, totalItems, pageNumber, pageSize);
+            var paginatedUsers = new PaginatedList<UserDTO>(users, totalItems, pageNumber, pageSize);
+
+            // ✅ Store in cache for 30 minutes
+            await _cacheService.SetAsync(cacheKey, paginatedUsers, TimeSpan.FromMinutes(30));
+
+            return paginatedUsers;
+
+
         }
+
         public async Task<UserDTO?> GetUserByIdAsync(string userId)
         {
+            string cacheKey = $"user_{userId}";
+
+            var cachedUser = await _cacheService.GetAsync<UserDTO>(cacheKey);
+            if (cachedUser != null) return cachedUser;
+
             var user = await _userManager.FindByIdAsync(userId);
-            if (user == null) return null;
+            if (user == null) throw new BaseException.NotFoundException("user_not_found", $"User with ID {userId} not found.");
 
             var userDto = _mapper.Map<UserDTO>(user);
             userDto.Roles = (await _userManager.GetRolesAsync(user)).ToList();
 
+            // ✅ Store in cache for 1 hour
+            await _cacheService.SetAsync(cacheKey, userDto, TimeSpan.FromHours(1));
+
             return userDto;
+
         }
+
         public async Task<UserDTO?> GetCurrentUserAsync()
         {
-
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
-                return null;
+                throw new BaseException.NotFoundException("user_not_found", $"User with ID {userId} not found.");
 
-            return await GetUserByIdAsync(userId);
+            string cacheKey = $"CurrentUser_{userId}";
+
+            if (!_cache.TryGetValue(cacheKey, out UserDTO? cachedUser))
+            {
+                cachedUser = await GetUserByIdAsync(userId);
+
+                if (cachedUser == null)
+                {
+                    throw new BaseException.NotFoundException("user_not_found", $"User with ID {userId} not found."); 
+                }
+                _cache.Set(cacheKey, cachedUser, TimeSpan.FromMinutes(10));
+            }
+            return cachedUser;
         }
+
+
         public string? GetCurrentUserId()
         {
             var user = _httpContextAccessor.HttpContext?.User;
             return user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+
+        public async Task RemoveUserCacheAsync(string userId)
+        {
+            await _cacheService.RemoveAsync($"user_{userId}");
+        }
+
+        public async Task RemoveUsersCacheAsync()
+        {
+            await _cacheService.RemoveByPrefixAsync("users_");
         }
     }
 }

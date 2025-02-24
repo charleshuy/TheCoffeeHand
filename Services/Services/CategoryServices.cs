@@ -3,10 +3,11 @@ using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Core.Utils;
-using Services.Interfaces.Interfaces;
 using Interfracture.Base;
 using AutoMapper.QueryableExtensions;
 using Services.DTOs;
+using Services.ServiceInterfaces;
+using Interfracture.PaggingItems;
 
 namespace Services.Services
 {
@@ -14,11 +15,13 @@ namespace Services.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly IRedisCacheServices _cacheService;
 
-        public CategoryServices(IUnitOfWork unitOfWork, IMapper mapper)
+        public CategoryServices(IUnitOfWork unitOfWork, IMapper mapper, IRedisCacheServices cacheService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
+            _cacheService = cacheService;
         }
 
         public async Task<CategoryResponseDTO> CreateCategoryAsync(CategoryRequestDTO categoryDTO)
@@ -30,44 +33,77 @@ namespace Services.Services
 
             await categoryRepo.InsertAsync(category);
             await _unitOfWork.SaveAsync();
+            await _cacheService.RemoveByPrefixAsync("categories_");
 
             return _mapper.Map<CategoryResponseDTO>(category);
         }
 
-        public async Task<CategoryResponseDTO?> GetCategoryByIdAsync(Guid id)
+        public async Task<CategoryResponseDTO> GetCategoryByIdAsync(Guid id)
         {
-            var categoryRepo = _unitOfWork.GetRepository<Category>();
-            var category = await categoryRepo.Entities.FirstOrDefaultAsync(c => c.Id == id);
+            string cacheKey = $"category_{id}";
 
-            return category == null ? null : _mapper.Map<CategoryResponseDTO>(category);
+            // Try to get from cache first
+            var category = await _cacheService.GetAsync<Category>(cacheKey);
+            if (category != null)
+                return _mapper.Map<CategoryResponseDTO>(category);
+
+            var categoryRepo = _unitOfWork.GetRepository<Category>();
+            category = await categoryRepo.Entities.FirstOrDefaultAsync(c => c.Id == id);
+
+            if (category == null)
+                throw new BaseException.NotFoundException("category_not_found", $"Category with ID {id} not found.");
+
+            await _cacheService.SetAsync(cacheKey, category, TimeSpan.FromMinutes(30));
+
+            return _mapper.Map<CategoryResponseDTO>(category);
         }
 
-        public async Task<BasePaginatedList<CategoryResponseDTO>> GetAllCategoriesAsync(int pageNumber, int pageSize)
+
+        public async Task<PaginatedList<CategoryResponseDTO>> GetAllCategoriesAsync(int pageNumber, int pageSize)
         {
+            string cacheKey = $"categories_{pageNumber}_{pageSize}";
+
+            // Try to get data from cache first
+            var cachedCategories = await _cacheService.GetAsync<PaginatedList<CategoryResponseDTO>>(cacheKey);
+            if (cachedCategories != null)
+            {
+                return cachedCategories;
+            }
+
             var categoryRepo = _unitOfWork.GetRepository<Category>();
             var query = categoryRepo.Entities.Where(c => c.DeletedTime == null);
-            int totalItems = await query.CountAsync();
 
-            var categories = await query
-                .OrderBy(c => c.Name)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ProjectTo<CategoryResponseDTO>(_mapper.ConfigurationProvider)
-                .ToListAsync();
+            // Fetch and paginate data
+            var paginatedCategories = await PaginatedList<CategoryResponseDTO>.CreateAsync(
+                query.OrderBy(c => c.Name).ProjectTo<CategoryResponseDTO>(_mapper.ConfigurationProvider),
+                pageNumber,
+                pageSize
+            );
 
-            return new BasePaginatedList<CategoryResponseDTO>(categories, totalItems, pageNumber, pageSize);
+            // Store in cache for 30 minutes
+            await _cacheService.SetAsync(cacheKey, paginatedCategories, TimeSpan.FromMinutes(30));
+
+            return paginatedCategories;
         }
+
+
 
         public async Task<CategoryResponseDTO> UpdateCategoryAsync(Guid id, CategoryRequestDTO categoryDTO)
         {
+            string cacheKey = $"category_{id}";
             var categoryRepo = _unitOfWork.GetRepository<Category>();
 
-            var category = await categoryRepo.Entities.FirstOrDefaultAsync(c => c.Id == id);
+            // Check cache first
+            var category = await _cacheService.GetAsync<Category>(cacheKey);
             if (category == null)
-                throw new KeyNotFoundException("Category not found.");
+            {
+                category = await categoryRepo.Entities.FirstOrDefaultAsync(c => c.Id == id);
+                if (category == null)
+                    throw new BaseException.NotFoundException("category_not_found", "Category not found.");
+            }
 
             if (category.DeletedTime != null)
-                throw new InvalidOperationException("Cannot update a deleted category.");
+                throw new BaseException.BadRequestException("category_deleted", "Cannot update a deleted category.");
 
             // Map only provided properties while keeping existing values
             _mapper.Map(categoryDTO, category);
@@ -76,22 +112,43 @@ namespace Services.Services
             categoryRepo.Update(category);
             await _unitOfWork.SaveAsync();
 
-            return _mapper.Map<CategoryResponseDTO>(category);
+            var updatedCategoryDTO = _mapper.Map<CategoryResponseDTO>(category);
+
+            // Update cache with the new category data
+            await _cacheService.SetAsync(cacheKey, category, TimeSpan.FromMinutes(30));
+
+            await _cacheService.RemoveByPrefixAsync("categories_");
+
+            return updatedCategoryDTO;
         }
+
 
 
         public async Task<bool> DeleteCategoryAsync(Guid id)
         {
+            string cacheKey = $"category_{id}";
             var categoryRepo = _unitOfWork.GetRepository<Category>();
 
-            var category = await categoryRepo.Entities.FirstOrDefaultAsync(c => c.Id == id);
-            if (category == null || category.DeletedTime != null)
-                return false;
+            // Check cache first
+            var category = await _cacheService.GetAsync<Category>(cacheKey);
+            if (category == null)
+            {
+                category = await categoryRepo.Entities.FirstOrDefaultAsync(c => c.Id == id);
+                if (category == null)
+                    throw new BaseException.NotFoundException("category_not_found", "Category not found.");
+            }
+
+            if (category.DeletedTime != null)
+                throw new BaseException.BadRequestException("category_already_deleted", "Category has already been deleted.");
 
             category.DeletedTime = CoreHelper.SystemTimeNow;
 
             categoryRepo.Update(category);
             await _unitOfWork.SaveAsync();
+
+            // Remove from cache since it's deleted
+            await _cacheService.RemoveAsync(cacheKey);
+            await _cacheService.RemoveByPrefixAsync("categories_");
 
             return true;
         }

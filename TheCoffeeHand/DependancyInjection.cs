@@ -47,6 +47,8 @@ namespace TheCoffeeHand
             services.AddControllers();
             services.AddEndpointsApiExplorer();
 
+            services.AddMemoryCache();  
+
             // Add Redis Service
             services.AddSingleton<IConnectionMultiplexer>(_ =>
             {
