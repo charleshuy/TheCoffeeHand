@@ -1,8 +1,8 @@
 ﻿
 
 using AutoMapper;
-using Interfracture.DTOs;
 using Interfracture.Entities;
+using Services.DTOs;
 
 namespace Services.Services.MapperProfiles
 {

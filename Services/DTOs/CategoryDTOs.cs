@@ -1,6 +1,4 @@
-﻿
-
-namespace Interfracture.DTOs
+﻿namespace Services.DTOs
 {
     public class CategoryResponseDTO
     {

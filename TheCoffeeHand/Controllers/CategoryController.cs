@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services.Interfaces;
 using Services.Interfaces.Interfaces;
-using Interfracture.DTOs;
 using Interfracture.PaggingItems;
+using Services.DTOs;
 
 namespace TheCoffeeHand.Controllers
 {

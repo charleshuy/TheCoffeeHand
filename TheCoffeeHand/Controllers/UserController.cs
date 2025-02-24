@@ -1,7 +1,7 @@
-﻿using Interfracture.DTOs;
-using Interfracture.PaggingItems;
+﻿using Interfracture.PaggingItems;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Services.DTOs;
 using Services.Interfaces;
 using Services.Interfaces.Interfaces;
 
