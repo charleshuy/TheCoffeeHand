@@ -1,4 +1,4 @@
-﻿using Services.Interfaces;
+﻿using Services.ServiceInterfaces;
 using StackExchange.Redis;
 using System.Text.Json;
 
@@ -39,5 +39,16 @@ namespace Services.Services.RedisCache
             var server = _redis.GetServer(_redis.GetEndPoints().First());
             return server.Keys(pattern: pattern).Select(k => k.ToString());
         }
+        public async Task RemoveByPrefixAsync(string prefix)
+        {
+            var server = _redis.GetServer(_redis.GetEndPoints().First());
+            var keys = server.Keys(pattern: $"{prefix}*").ToArray(); // Get all keys that start with prefix
+
+            if (keys.Length > 0)
+            {
+                await _db.KeyDeleteAsync(keys); // Delete all matching keys
+            }
+        }
+
     }
 }

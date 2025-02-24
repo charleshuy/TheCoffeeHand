@@ -1,11 +1,12 @@
 ﻿using Interfracture.Base;
+using Interfracture.PaggingItems;
 using Services.DTOs;
 
-namespace Services.Interfaces.Interfaces
+namespace Services.ServiceInterfaces
 {
     public interface IUserServices
     {
-        Task<BasePaginatedList<UserDTO>> SearchUsersAsync(
+        Task<PaginatedList<UserDTO>> SearchUsersAsync(
             string? firstName,
             string? lastName,
             string? phone,

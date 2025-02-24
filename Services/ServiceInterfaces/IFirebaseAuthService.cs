@@ -1,4 +1,4 @@
-﻿namespace Services.Interfaces.Interfaces
+﻿namespace Services.ServiceInterfaces
 {
     public interface IFirebaseAuthService
     {

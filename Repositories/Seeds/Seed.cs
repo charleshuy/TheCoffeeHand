@@ -28,6 +28,9 @@ namespace Repositories.Seeds
 
             // Seed orders
             await SeedOrders(context, userManager);
+
+            // Seed ingredients
+            await SeedIngredients(context);
         }
 
         private static async Task SeedRoles(RoleManager<ApplicationRole> roleManager)
@@ -119,5 +122,21 @@ namespace Repositories.Seeds
                 await context.SaveChangesAsync();
             }
         }
+        private static async Task SeedIngredients(ApplicationDbContext context)
+        {
+            if (!context.Ingredients.Any()) // Prevent duplicate seeding
+            {
+                context.Ingredients.AddRange(
+                    new Ingredient { Name = "Coffee Beans", Quantity = 1000 },
+                    new Ingredient { Name = "Milk", Quantity = 50 },
+                    new Ingredient { Name = "Sugar", Quantity = 500 },
+                    new Ingredient { Name = "Tea Leaves", Quantity = 300 },
+                    new Ingredient { Name = "Cocoa Powder", Quantity = 200 },
+                    new Ingredient { Name = "Vanilla Syrup", Quantity = 150 }
+                );
+                await context.SaveChangesAsync();
+            }
+        }
+
     }
 }
