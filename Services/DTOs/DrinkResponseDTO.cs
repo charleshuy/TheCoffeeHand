@@ -6,7 +6,8 @@
         public string? Description { get; set; }
         public double Price { get; set; }
         public Guid? CategoryId { get; set; }
-        public virtual CategoryResponseDTO? Category { get; set; }
+        public CategoryResponseDTO? Category { get; set; }
+        public List<RecipeResponseDTO>? Recipe { get; set; }
         public string? Name { get; set; }
         public Boolean? isAvailable { get; set; }
     }

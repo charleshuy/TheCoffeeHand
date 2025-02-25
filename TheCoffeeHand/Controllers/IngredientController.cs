@@ -18,9 +18,13 @@ namespace TheCoffeeHand.Controllers
         /// <summary>
         /// Get paginated list of ingredients
         /// </summary>
-        [HttpGet]
+        [HttpGet("paginated")]
         public async Task<IActionResult> GetIngredients([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
+            if (pageNumber <= 0 || pageSize <= 0)
+            {
+                return BadRequest("pageNumber and pageSize must be greater than 0.");
+            }
             var ingredients = await _ingredientService.GetIngredientsAsync(pageNumber, pageSize);
             return Ok(ingredients);
         }

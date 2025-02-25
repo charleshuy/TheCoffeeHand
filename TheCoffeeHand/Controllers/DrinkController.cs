@@ -31,16 +31,20 @@ namespace TheCoffeeHand.Controllers
             return Ok(drink);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetDrinks()
-        {
-            var drinks = await _drinkService.GetDrinksAsync();
-            return Ok(drinks);
-        }
+        //[HttpGet]
+        //public async Task<IActionResult> GetDrinks()
+        //{
+        //    var drinks = await _drinkService.GetDrinksAsync();
+        //    return Ok(drinks);
+        //}
 
         [HttpGet("paginated")]
         public async Task<IActionResult> GetDrinksPaginated([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
+            if (pageNumber <= 0 || pageSize <= 0)
+            {
+                return BadRequest("pageNumber and pageSize must be greater than 0.");
+            }
             var drinks = await _drinkService.GetDrinksAsync(pageNumber, pageSize);
             return Ok(drinks);
         }

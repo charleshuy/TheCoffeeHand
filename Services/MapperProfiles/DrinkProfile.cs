@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Interfracture.Entities;
 using Services.DTOs;
 
 namespace Services.MapperProfiles
@@ -7,10 +8,11 @@ namespace Services.MapperProfiles
     {
         public DrinkProfile()
         {
-            CreateMap<Interfracture.Entities.Drink, DrinkResponseDTO>()
+            CreateMap<Drink, DrinkResponseDTO>()
                 .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category))
+                .ForMember(dest => dest.Recipe, opt => opt.MapFrom(src => src.Recipes))
                 .ReverseMap();
-            CreateMap<DrinkRequestDTO, Interfracture.Entities.Drink>()
+            CreateMap<DrinkRequestDTO, Drink>()
                .ReverseMap();
         }
     }

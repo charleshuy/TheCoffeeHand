@@ -33,7 +33,9 @@ namespace Services.Services
             // Clear cache when data changes
             await _cacheService.RemoveByPrefixAsync("drinks_");
 
-            return _mapper.Map<DrinkResponseDTO>(drink);
+            var result = await GetDrinkByIdAsync(drink.Id);
+
+            return _mapper.Map<DrinkResponseDTO>(result);
         }
 
         public async Task<DrinkResponseDTO> GetDrinkByIdAsync(Guid id)
@@ -47,7 +49,11 @@ namespace Services.Services
                 return cachedDrink;
             }
 
-            var drink = await _unitOfWork.GetRepository<Drink>().GetByIdAsync(id);
+            var drink = await _unitOfWork.GetRepository<Drink>()
+                .Entities
+                .Include(d => d.Category).Include(d => d.Recipes)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
             var drinkDTO = _mapper.Map<DrinkResponseDTO>(drink);
 
             // Store in cache
@@ -67,8 +73,12 @@ namespace Services.Services
                 return cachedDrinks;
             }
 
-            var drinks = await _unitOfWork.GetRepository<Drink>().Entities.ToListAsync();
-            var drinkDTOs = _mapper.Map<List<DrinkResponseDTO>>(drinks);
+            var drinkDTOs = await _unitOfWork.GetRepository<Drink>()
+                .Entities
+                .Where(d => d.DeletedTime == null)
+                .ProjectTo<DrinkResponseDTO>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
 
             // Store in cache
             await _cacheService.SetAsync(cacheKey, drinkDTOs, TimeSpan.FromMinutes(30));

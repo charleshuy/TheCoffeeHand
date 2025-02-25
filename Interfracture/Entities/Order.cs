@@ -1,6 +1,5 @@
 ﻿using Core.Constants;
 using Interfracture.Base;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Interfracture.Entities
 {
