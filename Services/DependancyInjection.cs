@@ -16,6 +16,8 @@ namespace Services
             services.AddScoped<IIngredientService, IngredientService>();
             services.AddScoped<IDrinkService, DrinkService>();
             services.AddScoped<IRecipeService, RecipeService>();
+            services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<IOrderDetailService, OrderDetailService>();
             //services.AddScoped<IFCMService, FCMService>();
             services.AddHttpClient<IFCMService, FCMService>();
         }
