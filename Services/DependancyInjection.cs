@@ -14,6 +14,8 @@ namespace Services
             services.AddScoped<ICategoryService, CategoryServices>();
             services.AddScoped<IRedisCacheServices, RedisCacheServices>();
             services.AddScoped<IIngredientService, IngredientService>();
+            services.AddScoped<IDrinkService, DrinkService>();
+            services.AddScoped<IRecipeService, RecipeService>();
             //services.AddScoped<IFCMService, FCMService>();
             services.AddHttpClient<IFCMService, FCMService>();
         }

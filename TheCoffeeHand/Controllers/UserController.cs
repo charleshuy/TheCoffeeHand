@@ -1,7 +1,4 @@
-﻿using Interfracture.PaggingItems;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Services.DTOs;
+﻿using Microsoft.AspNetCore.Mvc;
 using Services.ServiceInterfaces;
 
 namespace TheCoffeeHand.Controllers
@@ -11,12 +8,10 @@ namespace TheCoffeeHand.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserServices _userServices;
-        private readonly IRedisCacheServices _cacheService;
 
-        public UserController(IUserServices userServices, IRedisCacheServices cacheService)
+        public UserController(IUserServices userServices)
         {
             _userServices = userServices;
-            _cacheService = cacheService;
         }
 
         [HttpGet("search")]
@@ -29,6 +24,10 @@ namespace TheCoffeeHand.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
+            if (pageNumber <= 0 || pageSize <= 0)
+            {
+                return BadRequest("pageNumber and pageSize must be greater than 0.");
+            }
             var users = await _userServices.SearchUsersAsync(firstName, LastName,  phone, email, roleName, pageNumber, pageSize);
             return Ok(users);
         }

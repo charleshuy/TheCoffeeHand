@@ -30,11 +30,15 @@ namespace TheCoffeeHand.Controllers
             return Ok(category);
         }
 
-        [HttpGet]
+        [HttpGet("paginated")]
         public async Task<IActionResult> GetAllCategories(
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 10)
         {
+            if (pageNumber <= 0 || pageSize <= 0)
+            {
+                return BadRequest("pageNumber and pageSize must be greater than 0.");
+            }
             var paginatedCategories = await _categoryService.GetAllCategoriesAsync(pageNumber, pageSize);
             return Ok(paginatedCategories);
         }
