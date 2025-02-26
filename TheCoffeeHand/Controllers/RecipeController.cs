@@ -30,12 +30,12 @@ namespace TheCoffeeHand.Controllers
             return Ok(recipe);
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> GetRecipes()
-        //{
-        //    var recipes = await _recipeService.GetRecipesAsync();
-        //    return Ok(recipes);
-        //}
+        [HttpGet]
+        public async Task<IActionResult> GetRecipes()
+        {
+            var recipes = await _recipeService.GetRecipesAsync();
+            return Ok(recipes);
+        }
 
         [HttpGet("paginated")]
         public async Task<IActionResult> GetRecipesPaged([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
