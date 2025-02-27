@@ -62,10 +62,9 @@ namespace Services.Services
             return orderDTO;
         }
 
-        // Get orders with pagination
-        public async Task<PaginatedList<OrderResponseDTO>> GetOrdersAsync(int pageNumber, int pageSize)
+        public async Task<PaginatedList<OrderResponseDTO>> GetOrdersAsync(int pageNumber, int pageSize, Guid? userId, DateTimeOffset? date)
         {
-            string cacheKey = $"orders_{pageNumber}_{pageSize}";
+            string cacheKey = $"orders_{pageNumber}_{pageSize}_{userId}_{date}";
 
             var cachedOrders = await _cacheService.GetAsync<PaginatedList<OrderResponseDTO>>(cacheKey);
             if (cachedOrders != null)
@@ -73,10 +72,20 @@ namespace Services.Services
                 return cachedOrders;
             }
 
-            var orderRepo = _unitOfWork.GetRepository<Order>();
-            var query = orderRepo.Entities;
+            var query = _unitOfWork.GetRepository<Order>().Entities;
+            if(userId != null)
+            {
+                query = query.Where(o => o.UserId == userId);
+            }
+            if (date != null)
+            {
+                query = query.Where(o => o.Date.HasValue && o.Date.Value.CompareTo(date.Value) >= 0);
+            }
 
-            var orders = await query.ProjectTo<OrderResponseDTO>(_mapper.ConfigurationProvider).ToListAsync();
+            var orders = await query
+                .ProjectTo<OrderResponseDTO>(_mapper.ConfigurationProvider)
+                .ToListAsync();
+
             var paginatedOrders = PaginatedList<OrderResponseDTO>.Create(
                 orders.OrderBy(o => o.Date).ToList(),
                 pageNumber,

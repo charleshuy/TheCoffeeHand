@@ -1,5 +1,6 @@
 ﻿using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Interfracture.Base;
 using Interfracture.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -10,13 +11,23 @@ using Repositories;
 using Repositories.Base;
 using Services;
 using StackExchange.Redis;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace TheCoffeeHand
 {
+    /// <summary>
+    /// Provides dependency injection setup for the application.
+    /// </summary>
     public static class DependencyInjection
     {
+        /// <summary>
+        /// Configures the application's services and dependencies.
+        /// </summary>
+        /// <param name="services">The service collection to configure.</param>
+        /// <param name="configuration">The application configuration settings.</param>
         public static void AddApplication(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddRepositoryLayer();
@@ -34,7 +45,7 @@ namespace TheCoffeeHand
 
             services.AddDistributedMemoryCache();
 
-            // Add Firebase Authentication
+            // Add Firebase and JWT Authentication
             services.AddAuthentication(configuration);
 
             // Add Authorization
@@ -44,10 +55,13 @@ namespace TheCoffeeHand
             services.AddSwaggerDocumentation();
 
             // Add Controllers and API-related services
-            services.AddControllers();
-            services.AddEndpointsApiExplorer();
+            services.AddControllers().AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
-            services.AddMemoryCache();  
+            services.AddEndpointsApiExplorer();
+            services.AddMemoryCache();
 
             // Add Redis Service
             services.AddSingleton<IConnectionMultiplexer>(_ =>
@@ -65,14 +79,20 @@ namespace TheCoffeeHand
 
                 return ConnectionMultiplexer.Connect(options);
             });
-
         }
 
+        /// <summary>
+        /// Configures authentication services including Firebase and custom JWT authentication.
+        /// </summary>
+        /// <param name="services">The service collection to configure.</param>
+        /// <param name="configuration">The application configuration settings.</param>
         private static void AddAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
             if (FirebaseApp.DefaultInstance == null)
             {
-                string adminSdkRelativePath = configuration["Firebase:AdminSDKPath"];
+                string adminSdkRelativePath = configuration["Firebase:AdminSDKPath"]
+                    ?? throw new BaseException.CoreException("config", "Missing Firebase:AdminSDKPath");
+
                 string adminSdkFullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, adminSdkRelativePath);
 
                 FirebaseApp.Create(new AppOptions()
@@ -80,14 +100,16 @@ namespace TheCoffeeHand
                     Credential = GoogleCredential.FromFile(adminSdkFullPath)
                 });
             }
-            var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]));
+
+            var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]
+                ?? throw new BaseException.CoreException("config", "Missing Jwt:Key")));
 
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-            // 🔥 Firebase Authentication
+            // Firebase Authentication
             .AddJwtBearer("Firebase", options =>
             {
                 options.Authority = $"https://securetoken.google.com/{configuration["Firebase:ProjectId"]}";
@@ -100,13 +122,13 @@ namespace TheCoffeeHand
                     ValidateLifetime = true
                 };
             })
-            // 🔑 Custom JWT Authentication
+            // Custom JWT Authentication
             .AddJwtBearer("Jwt", options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = false, // ❌ No Issuer validation
-                    ValidateAudience = false, // ❌ No Audience validation
+                    ValidateIssuer = false, // No Issuer validation
+                    ValidateAudience = false, // No Audience validation
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = jwtKey,
@@ -115,6 +137,10 @@ namespace TheCoffeeHand
             });
         }
 
+        /// <summary>
+        /// Configures Swagger documentation for the API.
+        /// </summary>
+        /// <param name="services">The service collection to configure.</param>
         private static void AddSwaggerDocumentation(this IServiceCollection services)
         {
             services.AddSwaggerGen(options =>
@@ -143,6 +169,11 @@ namespace TheCoffeeHand
                         new string[] {}
                     }
                 });
+
+                // Enable XML Comments (for Swagger API Documentation)
+                var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
+                options.IncludeXmlComments(xmlPath);
             });
         }
     }

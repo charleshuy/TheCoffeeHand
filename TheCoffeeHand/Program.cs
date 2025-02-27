@@ -3,16 +3,21 @@ using TheCoffeeHand.MiddleWares;
 
 namespace TheCoffeeHand
 {
+    /// <summary>
+    /// The entry point of the application.
+    /// </summary>
     public class Program
     {
+        /// <summary>
+        /// The main entry method of the application.
+        /// </summary>
+        /// <param name="args">Command-line arguments.</param>
         public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
             // Register all services using DependencyInjection
             builder.Services.AddApplication(builder.Configuration);
-
-
 
             var app = builder.Build();
 
@@ -32,14 +37,15 @@ namespace TheCoffeeHand
 
             app.UseHttpsRedirection();
 
+            // Middleware to handle exceptions globally
             app.UseMiddleware<ExceptionMiddleware>();
 
             // Enable authentication and authorization
             app.UseAuthentication();
             app.UseAuthorization();
 
+            // Map controllers to endpoints
             app.MapControllers();
-
 
             app.Run();
         }

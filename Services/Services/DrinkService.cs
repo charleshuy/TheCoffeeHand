@@ -101,7 +101,7 @@ namespace Services.Services
             var query = drinkRepo.Entities.Where(d => d.DeletedTime == null);
 
             var paginatedDrinks = await PaginatedList<DrinkResponseDTO>.CreateAsync(
-                query.OrderBy(d => d.Name.ToLower()).ProjectTo<DrinkResponseDTO>(_mapper.ConfigurationProvider),
+                query.OrderBy(d => d.Name != null ? d.Name.ToLower() : string.Empty).ProjectTo<DrinkResponseDTO>(_mapper.ConfigurationProvider),
                 pageNumber,
                 pageSize
             );

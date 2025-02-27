@@ -1,5 +1,6 @@
 ﻿using Core.Constants;
 using Interfracture.Base;
+using System.Text.Json.Serialization;
 
 namespace Interfracture.Entities
 {

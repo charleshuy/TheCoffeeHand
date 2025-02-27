@@ -4,25 +4,41 @@ using Services.ServiceInterfaces;
 
 namespace TheCoffeeHand.Controllers
 {
+    /// <summary>
+    /// Controller for managing categories.
+    /// </summary>
     [Route("api/categories")]
     [ApiController]
     public class CategoryController : ControllerBase
     {
         private readonly ICategoryService _categoryService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CategoryController"/> class.
+        /// </summary>
+        /// <param name="categoryService">Service for handling category operations.</param>
         public CategoryController(ICategoryService categoryService)
         {
             _categoryService = categoryService;
         }
 
+        /// <summary>
+        /// Creates a new category.
+        /// </summary>
+        /// <param name="categoryDTO">The category data transfer object.</param>
+        /// <returns>Returns the created category.</returns>
         [HttpPost]
         public async Task<IActionResult> CreateCategory([FromBody] CategoryRequestDTO categoryDTO)
         {
             var category = await _categoryService.CreateCategoryAsync(categoryDTO);
-
             return CreatedAtAction(nameof(GetCategoryById), new { id = category.Id }, category);
         }
 
+        /// <summary>
+        /// Retrieves a category by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the category.</param>
+        /// <returns>Returns the category if found.</returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetCategoryById(Guid id)
         {
@@ -30,6 +46,12 @@ namespace TheCoffeeHand.Controllers
             return Ok(category);
         }
 
+        /// <summary>
+        /// Retrieves a paginated list of categories.
+        /// </summary>
+        /// <param name="pageNumber">The page number (default is 1).</param>
+        /// <param name="pageSize">The number of items per page (default is 10).</param>
+        /// <returns>Returns a paginated list of categories.</returns>
         [HttpGet("paginated")]
         public async Task<IActionResult> GetAllCategories(
             [FromQuery] int pageNumber = 1,
@@ -43,6 +65,12 @@ namespace TheCoffeeHand.Controllers
             return Ok(paginatedCategories);
         }
 
+        /// <summary>
+        /// Updates an existing category.
+        /// </summary>
+        /// <param name="id">The ID of the category to update.</param>
+        /// <param name="categoryDTO">The updated category data.</param>
+        /// <returns>Returns the updated category.</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CategoryRequestDTO categoryDTO)
         {
@@ -50,11 +78,15 @@ namespace TheCoffeeHand.Controllers
             return Ok(updatedCategory);
         }
 
+        /// <summary>
+        /// Deletes a category by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the category to delete.</param>
+        /// <returns>Returns a success message upon deletion.</returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCategory(Guid id)
         {
-            var deleted = await _categoryService.DeleteCategoryAsync(id);
-
+            await _categoryService.DeleteCategoryAsync(id);
             return Ok(new { message = "Category deleted successfully." });
         }
     }

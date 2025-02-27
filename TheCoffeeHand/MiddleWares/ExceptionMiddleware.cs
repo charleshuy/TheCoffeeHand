@@ -3,97 +3,119 @@ using System.Text.Json;
 
 namespace TheCoffeeHand.MiddleWares
 {
-    // You may need to install the Microsoft.AspNetCore.Http.Abstractions package into your project
+    /// <summary>
+    /// Middleware for handling global exceptions and returning structured error responses.
+    /// </summary>
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<ExceptionMiddleware> _logger;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ExceptionMiddleware"/> class.
+        /// </summary>
+        /// <param name="next">The next middleware in the pipeline.</param>
+        /// <param name="logger">Logger for logging exceptions.</param>
         public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
         {
             _next = next;
             _logger = logger;
         }
 
+        /// <summary>
+        /// Handles the request and catches any exceptions that occur.
+        /// </summary>
+        /// <param name="context">HTTP context of the current request.</param>
+        /// <returns>A task representing the middleware operation.</returns>
         public async Task Invoke(HttpContext context)
         {
             try
             {
                 await _next(context);
             }
-            catch (BaseException.BadRequestException badRequestEx)
+            catch (BaseException.CoreException ex)
             {
-                _logger.LogError(badRequestEx, "BadRequestException occurred.");
-                await HandleExceptionAsync(context, badRequestEx.StatusCode, new
+                await HandleExceptionAsync(context, ex.StatusCode, new
                 {
-                    errorCode = badRequestEx.ErrorDetail.ErrorCode,
-                    errorMessage = badRequestEx.ErrorDetail.ErrorMessage
-                });
+                    errorCode = ex.Code,
+                    errorMessage = ex.Message,
+                    additionalData = ex.AdditionalData
+                }, ex);
             }
-            catch (BaseException.NotFoundException notFoundEx)
+            catch (BaseException.BadRequestException ex)
             {
-                _logger.LogError(notFoundEx, "NotFoundException occurred.");
-                await HandleExceptionAsync(context, notFoundEx.StatusCode, new
+                await HandleExceptionAsync(context, ex.StatusCode, new
                 {
-                    errorCode = notFoundEx.ErrorDetail.ErrorCode,
-                    errorMessage = notFoundEx.ErrorDetail.ErrorMessage
-                });
+                    errorCode = ex.ErrorDetail?.ErrorCode,
+                    errorMessage = ex.ErrorDetail?.ErrorMessage
+                }, ex);
             }
-            catch (BaseException.CoreException coreEx)
+            catch (BaseException.NotFoundException ex)
             {
-                _logger.LogError(coreEx, "CoreException occurred.");
-                await HandleExceptionAsync(context, coreEx.StatusCode, new
+                await HandleExceptionAsync(context, ex.StatusCode, new
                 {
-                    code = coreEx.Code,
-                    message = coreEx.Message,
-                    additionalData = coreEx.AdditionalData
-                });
+                    errorCode = ex.ErrorDetail?.ErrorCode,
+                    errorMessage = ex.ErrorDetail?.ErrorMessage
+                }, ex);
             }
-            catch (BaseException.UnauthorizedException unAuthEx)
+            catch (BaseException.UnauthorizedException ex)
             {
-                _logger.LogError(unAuthEx, "UnauthorizedException occurred.");
-                await HandleExceptionAsync(context, unAuthEx.StatusCode, new
+                await HandleExceptionAsync(context, ex.StatusCode, new
                 {
-                    errorCode = unAuthEx.ErrorDetail.ErrorCode,
-                    errorMessage = unAuthEx.ErrorDetail.ErrorMessage
-                });
+                    errorCode = ex.ErrorDetail?.ErrorCode,
+                    errorMessage = ex.ErrorDetail?.ErrorMessage
+                }, ex);
             }
-            catch (BaseException.ValidationException validationEx)
+            catch (BaseException.ValidationException ex)
             {
-                _logger.LogError(validationEx, "Validation Invalid.");
-                context.Response.StatusCode = validationEx.StatusCode;
-                context.Response.ContentType = "application/json";
-                var errorResponse = new
+                await HandleExceptionAsync(context, ex.StatusCode, new
                 {
-                    errorCode = validationEx.ErrorDetail?.ErrorCode,
-                    errorMessage = validationEx.ErrorDetail?.ErrorMessage
-                };
-
-                await HandleExceptionAsync(context, validationEx.StatusCode, errorResponse);
+                    errorCode = ex.ErrorDetail?.ErrorCode,
+                    errorMessage = ex.ErrorDetail?.ErrorMessage
+                }, ex);
             }
-
-
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An unexpected exception occurred.");
                 await HandleExceptionAsync(context, StatusCodes.Status500InternalServerError, new
                 {
-                    error = $"An unexpected error occurred. Detail: {ex.Message}"
-                });
+                    errorCode = "INTERNAL_SERVER_ERROR",
+                    errorMessage = "An unexpected error occurred. Please try again later."
+                }, ex);
             }
         }
 
-        private static async Task HandleExceptionAsync(HttpContext context, int statusCode, object result)
+        /// <summary>
+        /// Handles exceptions by logging and returning a structured response.
+        /// </summary>
+        /// <param name="context">HTTP context of the request.</param>
+        /// <param name="statusCode">HTTP status code to return.</param>
+        /// <param name="result">The structured error response.</param>
+        /// <param name="ex">The exception that occurred.</param>
+        /// <returns>A task representing the exception handling operation.</returns>
+        private async Task HandleExceptionAsync(HttpContext context, int statusCode, object result, Exception ex)
         {
+            _logger.LogError(ex, $"Exception occurred: {ex.Message}");
+
             context.Response.StatusCode = statusCode;
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(result));
+
+            var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var responseJson = JsonSerializer.Serialize(result, jsonOptions);
+
+            await context.Response.WriteAsync(responseJson);
         }
     }
 
-    // Extension method used to add the middleware to the HTTP request pipeline.
+    /// <summary>
+    /// Extension method to register <see cref="ExceptionMiddleware"/> in the application pipeline.
+    /// </summary>
     public static class ExceptionMiddlewareExtensions
     {
+        /// <summary>
+        /// Adds the exception handling middleware to the application pipeline.
+        /// </summary>
+        /// <param name="builder">The application builder.</param>
+        /// <returns>The modified application builder.</returns>
         public static IApplicationBuilder UseExceptionMiddleware(this IApplicationBuilder builder)
         {
             return builder.UseMiddleware<ExceptionMiddleware>();

@@ -9,8 +9,8 @@ namespace Services.Services
 {
     public class FCMService : IFCMService
     {
-        private readonly string _serverKey;
-        private readonly string _senderId;
+        private readonly string? _serverKey;
+        private readonly string? _senderId;
         private readonly HttpClient _httpClient;
 
         public FCMService(IConfiguration configuration, HttpClient httpClient)

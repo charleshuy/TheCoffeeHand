@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Interfracture.Base;
 using Interfracture.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Services.ServiceInterfaces;
@@ -42,7 +43,7 @@ namespace Services.Services.Base
             var dto = await _unitOfWork.GetRepository<T>().Entities
                 .Where(e => EF.Property<Guid>(e, "Id") == id)
                 .ProjectTo<TResponseDTO>(_mapper.ConfigurationProvider)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync() ?? throw new BaseException.NotFoundException("not_found","Not found");
 
 
             await _cacheService.SetAsync(cacheKey, dto, TimeSpan.FromMinutes(30));

@@ -1,20 +1,36 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
 using Services.ServiceInterfaces;
+using System;
+using System.Threading.Tasks;
 
 namespace TheCoffeeHand.Controllers
 {
+    /// <summary>
+    /// Controller for managing orders.
+    /// </summary>
     [Route("api/orders")]
     [ApiController]
     public class OrderController : ControllerBase
     {
         private readonly IOrderService _orderService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrderController"/>.
+        /// </summary>
+        /// <param name="orderService">The order service.</param>
         public OrderController(IOrderService orderService)
         {
             _orderService = orderService;
         }
 
+        /// <summary>
+        /// Creates a new order.
+        /// </summary>
+        /// <param name="orderDTO">The order data.</param>
+        /// <returns>The created order.</returns>
+        /// <response code="201">Returns the newly created order.</response>
+        /// <response code="400">If the request data is invalid.</response>
         [HttpPost]
         public async Task<IActionResult> CreateOrder([FromBody] OrderRequestDTO orderDTO)
         {
@@ -25,6 +41,13 @@ namespace TheCoffeeHand.Controllers
             return CreatedAtAction(nameof(GetOrderById), new { id = createdOrder.Id }, createdOrder);
         }
 
+        /// <summary>
+        /// Retrieves an order by ID.
+        /// </summary>
+        /// <param name="id">The order ID.</param>
+        /// <returns>The requested order.</returns>
+        /// <response code="200">Returns the order if found.</response>
+        /// <response code="404">If the order is not found.</response>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetOrderById(Guid id)
         {
@@ -35,16 +58,34 @@ namespace TheCoffeeHand.Controllers
             return Ok(order);
         }
 
+        /// <summary>
+        /// Retrieves paginated orders, optionally filtered by user and date.
+        /// </summary>
+        /// <param name="userId">Optional user ID filter.</param>
+        /// <param name="date">Optional date filter.</param>
+        /// <param name="pageNumber">Page number (default: 1).</param>
+        /// <param name="pageSize">Page size (default: 10).</param>
+        /// <returns>Paginated list of orders.</returns>
+        /// <response code="200">Returns the list of orders.</response>
+        /// <response code="400">If pageNumber or pageSize is invalid.</response>
         [HttpGet("paginated")]
-        public async Task<IActionResult> GetOrders([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetOrders(Guid? userId, [FromQuery] DateTimeOffset? date, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             if (pageNumber <= 0 || pageSize <= 0)
                 return BadRequest("Page number and page size must be greater than zero.");
 
-            var paginatedOrders = await _orderService.GetOrdersAsync(pageNumber, pageSize);
+            var paginatedOrders = await _orderService.GetOrdersAsync(pageNumber, pageSize, userId, date);
             return Ok(paginatedOrders);
         }
 
+        /// <summary>
+        /// Updates an existing order.
+        /// </summary>
+        /// <param name="id">The order ID.</param>
+        /// <param name="orderDTO">The updated order data.</param>
+        /// <returns>The updated order.</returns>
+        /// <response code="200">If the update is successful.</response>
+        /// <response code="404">If the order is not found.</response>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateOrder(Guid id, [FromBody] OrderRequestDTO orderDTO)
         {
@@ -55,6 +96,12 @@ namespace TheCoffeeHand.Controllers
             return Ok(updatedOrder);
         }
 
+        /// <summary>
+        /// Deletes an order by ID.
+        /// </summary>
+        /// <param name="id">The order ID.</param>
+        /// <returns>No content.</returns>
+        /// <response code="204">If the order is successfully deleted.</response>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteOrder(Guid id)
         {

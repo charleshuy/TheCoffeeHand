@@ -1,4 +1,5 @@
 ﻿using FirebaseAdmin.Auth;
+using Interfracture.Base;
 using Interfracture.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -47,8 +48,8 @@ namespace Services.Services
                     {
                         UserName = username,
                         Email = email,
-                        FirstName = firstName,
-                        LastName = lastName,
+                        FirstName = firstName ?? "",
+                        LastName = lastName ?? "",
                         FcmToken = fcmToken // ✅ Store FCM Token
                     };
 
@@ -85,13 +86,13 @@ namespace Services.Services
 
         private async Task<string> GenerateJwtToken(ApplicationUser user, UserManager<ApplicationUser> userManager)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? throw new BaseException.NotFoundException("not_found", "Jwt key not found")));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Email)
+                new Claim(ClaimTypes.Name, user.Email ?? "")
             };
 
             // ✅ Fetch roles from Identity and add them as claims
