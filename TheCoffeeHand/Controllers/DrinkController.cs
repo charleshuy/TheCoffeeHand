@@ -4,17 +4,29 @@ using Services.ServiceInterfaces;
 
 namespace TheCoffeeHand.Controllers
 {
+    /// <summary>
+    /// Controller for managing drinks.
+    /// </summary>
     [Route("api/drink")]
     [ApiController]
     public class DrinkController : ControllerBase
     {
         private readonly IDrinkService _drinkService;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DrinkController"/> class.
+        /// </summary>
+        /// <param name="drinkService">Service for handling drink operations.</param>
         public DrinkController(IDrinkService drinkService)
         {
             _drinkService = drinkService;
         }
 
+        /// <summary>
+        /// Creates a new drink.
+        /// </summary>
+        /// <param name="drinkDTO">The drink data transfer object.</param>
+        /// <returns>Returns the created drink.</returns>
         [HttpPost]
         public async Task<IActionResult> CreateDrink([FromBody] DrinkRequestDTO drinkDTO)
         {
@@ -22,6 +34,11 @@ namespace TheCoffeeHand.Controllers
             return CreatedAtAction(nameof(GetDrinkById), new { id = result.Id }, result);
         }
 
+        /// <summary>
+        /// Retrieves a drink by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the drink.</param>
+        /// <returns>Returns the drink if found; otherwise, returns NotFound.</returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetDrinkById(Guid id)
         {
@@ -31,15 +48,16 @@ namespace TheCoffeeHand.Controllers
             return Ok(drink);
         }
 
-        //[HttpGet]
-        //public async Task<IActionResult> GetDrinks()
-        //{
-        //    var drinks = await _drinkService.GetDrinksAsync();
-        //    return Ok(drinks);
-        //}
-
+        /// <summary>
+        /// Retrieves a paginated list of drinks.
+        /// </summary>
+        /// <param name="pageNumber">The page number (default is 1).</param>
+        /// <param name="pageSize">The number of items per page (default is 10).</param>
+        /// <returns>Returns a paginated list of drinks.</returns>
         [HttpGet("paginated")]
-        public async Task<IActionResult> GetDrinksPaginated([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetDrinksPaginated(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
         {
             if (pageNumber <= 0 || pageSize <= 0)
             {
@@ -49,6 +67,12 @@ namespace TheCoffeeHand.Controllers
             return Ok(drinks);
         }
 
+        /// <summary>
+        /// Updates an existing drink.
+        /// </summary>
+        /// <param name="id">The ID of the drink to update.</param>
+        /// <param name="drinkDTO">The updated drink data.</param>
+        /// <returns>Returns the updated drink.</returns>
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateDrink(Guid id, [FromBody] DrinkRequestDTO drinkDTO)
         {
@@ -56,11 +80,15 @@ namespace TheCoffeeHand.Controllers
             return Ok(updatedDrink);
         }
 
+        /// <summary>
+        /// Deletes a drink by its ID.
+        /// </summary>
+        /// <param name="id">The ID of the drink to delete.</param>
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDrink(Guid id)
         {
             await _drinkService.DeleteDrinkAsync(id);
-            return NoContent();
+            return Ok(new { message = "Drink deleted successfully." });
         }
     }
 }

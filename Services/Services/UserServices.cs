@@ -57,10 +57,10 @@ namespace Services.Services
                 usersQuery = usersQuery.Where(u => u.LastName.Contains(lastName));
 
             if (!string.IsNullOrWhiteSpace(phone))
-                usersQuery = usersQuery.Where(u => u.PhoneNumber.Contains(phone));
+                usersQuery = usersQuery.Where(u => u.PhoneNumber != null && u.PhoneNumber.Contains(phone));
 
             if (!string.IsNullOrWhiteSpace(email))
-                usersQuery = usersQuery.Where(u => u.Email.Contains(email));
+                usersQuery = usersQuery.Where(u => u.Email != null && u.Email.Contains(email));
 
             if (!string.IsNullOrWhiteSpace(roleName))
             {

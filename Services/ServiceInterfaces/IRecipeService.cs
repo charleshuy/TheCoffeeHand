@@ -3,7 +3,7 @@ using Services.DTOs;
 
 namespace Services.ServiceInterfaces
 {
-    public interface IRecipeService
+    public interface IRecipeService 
     {
         Task<RecipeResponseDTO> CreateRecipeAsync(RecipeRequestDTO recipeDTO);
         Task<RecipeResponseDTO> GetRecipeByIdAsync(Guid id);
