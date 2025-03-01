@@ -138,6 +138,7 @@ namespace Services.Services
         public string? GetCurrentUserId()
         {
             var user = _httpContextAccessor.HttpContext?.User;
+            if (user == null) throw new BaseException.UnauthorizedException("unauthenticated", "Require authentication"); ;
             return user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
 
