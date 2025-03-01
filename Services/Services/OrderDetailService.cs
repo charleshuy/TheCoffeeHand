@@ -134,6 +134,115 @@ namespace Services.Services
             return _mapper.Map<OrderDetailResponselDTO>(orderDetail);
         }
 
+        public async Task<bool> RemoveFromCartAsync(Guid orderDetailId)
+        {
+            // Fetch the order detail with related drink and order
+            var orderDetail = await _unitOfWork.GetRepository<OrderDetail>()
+                .Entities
+                .Include(od => od.Drink)
+                .FirstOrDefaultAsync(od => od.Id == orderDetailId);
+
+            if (orderDetail == null)
+                throw new Exception("Order detail not found");
+
+            // Fetch the cart (order) associated with this order detail
+            var cart = await _unitOfWork.GetRepository<Order>()
+                .Entities
+                .Include(o => o.OrderDetails!)
+                .FirstOrDefaultAsync(o => o.Id == orderDetail.OrderId && o.Status == 0);
+
+            if (cart == null)
+                throw new Exception("Cart not found");
+
+            // Fetch recipes related to the drink
+            var recipes = await _unitOfWork.GetRepository<Recipe>()
+                .Entities
+                .Where(r => r.DrinkId == orderDetail.DrinkId)
+                .Include(r => r.Ingredient)
+                .ToListAsync();
+
+            if (!recipes.Any())
+                throw new Exception("No recipes found for this drink");
+
+            // Dictionary to track ingredients to be restored
+            var restoreIngredients = new Dictionary<Guid, int>(); // {IngredientId, QuantityToRestore}
+
+            // Calculate quantity to restore
+            foreach (var recipe in recipes)
+            {
+                if (recipe.Ingredient == null)
+                    throw new Exception($"Ingredient missing for recipe ID: {recipe.Id}");
+
+                int restoreQuantity = orderDetail.Total * recipe.Quantity;
+
+                if (restoreIngredients.ContainsKey(recipe.Ingredient.Id))
+                {
+                    restoreIngredients[recipe.Ingredient.Id] += restoreQuantity;
+                }
+                else
+                {
+                    restoreIngredients[recipe.Ingredient.Id] = restoreQuantity;
+                }
+            }
+
+            // Fetch affected ingredients
+            var ingredientIds = restoreIngredients.Keys.ToList();
+            var ingredients = await _unitOfWork.GetRepository<Ingredient>()
+                .Entities
+                .Where(i => ingredientIds.Contains(i.Id))
+                .ToListAsync();
+
+            if (ingredients.Count != restoreIngredients.Count)
+                throw new Exception("Some ingredients not found in the database");
+
+            // Use a transaction to ensure atomic updates
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Restore ingredient stock
+                    foreach (var ingredient in ingredients)
+                    {
+                        ingredient.Quantity += restoreIngredients[ingredient.Id];
+                        _unitOfWork.GetRepository<Ingredient>().Update(ingredient);
+                    }
+
+                    // Remove order detail from cart
+                    _unitOfWork.GetRepository<OrderDetail>().Delete(orderDetail);
+                    await _unitOfWork.SaveAsync();
+
+                    // Recalculate total price
+                    cart = await _unitOfWork.GetRepository<Order>()
+                        .Entities
+                        .Include(o => o.OrderDetails!)
+                            .ThenInclude(od => od.Drink)
+                        .FirstOrDefaultAsync(c => c.Id == orderDetail.OrderId && c.Status == 0);
+
+                    if (cart == null)
+                        throw new Exception("Cart not found after update");
+
+                    cart.TotalPrice = cart.OrderDetails!.Sum(od => (od.Drink != null ? od.Drink.Price : 0) * od.Total);
+
+                    // Save updated cart price
+                    _unitOfWork.GetRepository<Order>().Update(cart);
+                    await _unitOfWork.SaveAsync();
+
+                    // Commit transaction
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+
+            // Clear cache when data changes
+            await _cacheService.RemoveByPrefixAsync("order_details_");
+            await _cacheService.RemoveByPrefixAsync("orders_");
+
+            return true;
+        }
 
 
         public async Task<OrderDetailResponselDTO> GetOrderDetailByIdAsync(Guid id)

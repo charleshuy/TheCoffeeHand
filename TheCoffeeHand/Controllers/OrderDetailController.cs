@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
 using Services.ServiceInterfaces;
-using System;
-using System.Threading.Tasks;
 
 namespace TheCoffeeHand.Controllers
 {
@@ -25,11 +23,11 @@ namespace TheCoffeeHand.Controllers
         }
 
         /// <summary>
-        /// Creates a new order detail.
+        /// Creates a new order detail to cart.
         /// </summary>
         /// <param name="dto">The order detail data transfer object.</param>
         /// <returns>The created order detail.</returns>
-        [HttpPost]
+        [HttpPost("cart")]
         public async Task<IActionResult> CreateOrderDetail([FromBody] OrderDetailRequestDTO dto)
         {
             var createdOrderDetail = await _orderDetailService.CreateOrderDetailAsync(dto);
@@ -98,6 +96,16 @@ namespace TheCoffeeHand.Controllers
         {
             await _orderDetailService.DeleteOrderDetailAsync(id);
             return NoContent();
+        }
+
+        /// <summary>
+        /// remove an order detail from a cart.
+        /// </summary>
+        [HttpPut("cart/{id}")]
+        public async Task<IActionResult> RemoveOrderDetailFromCart(Guid id)
+        {
+            await _orderDetailService.RemoveFromCartAsync(id);
+            return Ok();
         }
     }
 }

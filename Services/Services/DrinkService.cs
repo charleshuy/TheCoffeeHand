@@ -5,7 +5,6 @@ using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 using static Interfracture.Base.BaseException;
@@ -90,6 +89,57 @@ namespace Services.Services
             await _cacheService.SetAsync(cacheKey, drinkDTOs, TimeSpan.FromMinutes(30));
 
             return drinkDTOs;
+        }
+
+        public async Task<PaginatedList<DrinkResponseDTO>> GetDrinksAvailableAsync(int pageNumber, int pageSize, string? drinkName = null, string? categoryName = null)
+        {
+            string cacheKey = $"drinks_{pageNumber}_{pageSize}_{drinkName?.ToLower() ?? "all"}_{categoryName?.ToLower() ?? "all"}";
+
+            // Try to get from cache
+            var cachedDrinks = await _cacheService.GetAsync<PaginatedList<DrinkResponseDTO>>(cacheKey);
+            if (cachedDrinks != null)
+            {
+                return cachedDrinks;
+            }
+
+            var drinkRepo = _unitOfWork.GetRepository<Drink>();
+
+            var query = drinkRepo.Entities
+                .Include(d => d.Category)
+                .Include(d => d.Recipes!)  // Include recipes to access ingredient requirements
+                    .ThenInclude(r => r.Ingredient)
+                .Where(d => d.DeletedTime == null);
+
+            // Apply filters only if provided
+            if (!string.IsNullOrWhiteSpace(drinkName))
+            {
+                query = query.Where(d => d.Name != null && d.Name.ToLower().Contains(drinkName.ToLower()));
+            }
+
+            if (!string.IsNullOrWhiteSpace(categoryName))
+            {
+                query = query.Where(d => d.Category != null && d.Category.Name!.ToLower().Contains(categoryName.ToLower()));
+            }
+
+            // Ensure all required ingredients are available in stock
+            query = query.Where(d =>
+                d.Recipes!.All(r => r.Ingredient != null && r.Ingredient.Quantity >= r.Quantity)
+            );
+
+            // Order by name (handling null values)
+            query = query.OrderBy(d => d.Name != null ? d.Name.ToLower() : string.Empty);
+
+            // Paginate the results
+            var paginatedDrinks = await PaginatedList<DrinkResponseDTO>.CreateAsync(
+                query.ProjectTo<DrinkResponseDTO>(_mapper.ConfigurationProvider),
+                pageNumber,
+                pageSize
+            );
+
+            // Store in cache for 30 minutes
+            await _cacheService.SetAsync(cacheKey, paginatedDrinks, TimeSpan.FromMinutes(30));
+
+            return paginatedDrinks;
         }
 
         public async Task<PaginatedList<DrinkResponseDTO>> GetDrinksAsync(int pageNumber, int pageSize)

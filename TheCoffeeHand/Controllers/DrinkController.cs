@@ -68,6 +68,29 @@ namespace TheCoffeeHand.Controllers
         }
 
         /// <summary>
+        /// Retrieves a paginated list of avaiable drinks.
+        /// </summary>
+        /// <param name="drinkName"></param>
+        /// <param name="categoryName"></param>
+        /// <param name="pageNumber">The page number (default is 1).</param>
+        /// <param name="pageSize">The number of items per page (default is 10).</param>
+        /// <returns>Returns a paginated list of drinks.</returns>
+        [HttpGet("paginated/available")]
+        public async Task<IActionResult> GetAvaiableDrinksPaginated(
+            [FromQuery] string? drinkName,
+            [FromQuery] string? categoryName,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 10)
+        {
+            if (pageNumber <= 0 || pageSize <= 0)
+            {
+                return BadRequest("pageNumber and pageSize must be greater than 0.");
+            }
+            var drinks = await _drinkService.GetDrinksAvailableAsync(pageNumber, pageSize, drinkName, categoryName);
+            return Ok(drinks);
+        }
+
+        /// <summary>
         /// Updates an existing drink.
         /// </summary>
         /// <param name="id">The ID of the drink to update.</param>

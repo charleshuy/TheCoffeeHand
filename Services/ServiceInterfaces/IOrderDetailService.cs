@@ -11,5 +11,6 @@ namespace Services.ServiceInterfaces
         Task<PaginatedList<OrderDetailResponselDTO>> GetOrderDetailsAsync(int pageNumber, int pageSize);
         Task<OrderDetailResponselDTO> UpdateOrderDetailAsync(Guid id, OrderDetailRequestDTO dto);
         Task DeleteOrderDetailAsync(Guid id);
+        Task<bool> RemoveFromCartAsync(Guid orderDetailId);
     }
 }
