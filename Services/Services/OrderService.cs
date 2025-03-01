@@ -4,9 +4,11 @@ using Core.Utils;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Services.DTOs;
 using Services.ServiceInterfaces;
+using System.Security.Claims;
 using static Interfracture.Base.BaseException;
 
 namespace Services.Services
@@ -17,13 +19,18 @@ namespace Services.Services
         private readonly IMapper _mapper;
         private readonly IRedisCacheServices _cacheService;
         private readonly IUserServices _userServices;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public OrderService(IUnitOfWork unitOfWork, IMapper mapper, IRedisCacheServices cacheService)
+        public OrderService(IUnitOfWork unitOfWork, IMapper mapper, IRedisCacheServices cacheService, IUserServices userServices, IHttpContextAccessor httpContextAccessor)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _cacheService = cacheService;
+            _userServices = userServices;
+            _httpContextAccessor = httpContextAccessor;
         }
+
+
 
         // Create a new order
         public async Task<OrderResponseDTO> CreateOrderAsync(OrderRequestDTO orderDTO)
@@ -100,7 +107,11 @@ namespace Services.Services
 
         public async Task<OrderResponseDTO> GetCartAsync()
         {
-            var userId = _userServices.GetCurrentUserId();
+
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+                throw new BadRequestException("not_found", "User not found");
+
             var cart = await _unitOfWork.GetRepository<Order>()
                 .Entities
                 .Include(o => o.OrderDetails)
