@@ -16,5 +16,6 @@ namespace Services.ServiceInterfaces
             int pageSize);
         Task<UserDTO?> GetUserByIdAsync(string userId);
         Task<UserDTO?> GetCurrentUserAsync();
+        public string? GetCurrentUserId();
     }
 }

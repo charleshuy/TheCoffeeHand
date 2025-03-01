@@ -1,4 +1,5 @@
 ﻿using Interfracture.Base;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Interfracture.Interfaces
 {
@@ -8,6 +9,7 @@ namespace Interfracture.Interfaces
         void Save();
         Task SaveAsync();
         void BeginTransaction();
+        Task<IDbContextTransaction> BeginTransactionAsync();
         void CommitTransaction();
         void RollBack();
         bool IsValid<T>(string id) where T : BaseEntity;

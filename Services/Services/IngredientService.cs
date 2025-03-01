@@ -26,6 +26,12 @@ namespace Services.Services
 
         public async Task<IngredientResponseDTO> CreateIngredientAsync(IngredientRequestDTO ingredientDTO)
         {
+            var existingIngredient = await _unitOfWork.GetRepository<Ingredient>().Entities
+                .FirstOrDefaultAsync(i => i.Name.ToLower() == ingredientDTO.Name.ToLower());
+            if (existingIngredient != null)
+            {
+                throw new BadRequestException("bad_request", "Ingredient with the same name already exists.");
+            }
             var ingredient = _mapper.Map<Ingredient>(ingredientDTO);
             await _unitOfWork.GetRepository<Ingredient>().InsertAsync(ingredient);
             await _unitOfWork.SaveAsync();
@@ -104,6 +110,13 @@ namespace Services.Services
 
         public async Task<IngredientResponseDTO> UpdateIngredientAsync(Guid id, IngredientResponseDTO ingredientDTO)
         {
+            var existingIngredient = await _unitOfWork.GetRepository<Ingredient>().Entities
+                .FirstOrDefaultAsync(i => i.Id != id && i.Name.ToLower() == ingredientDTO.Name.ToLower());
+            if (existingIngredient != null)
+            {
+                throw new BadRequestException("bad_request", "Ingredient with the same name already exists.");
+            }
+
             var ingredient = _mapper.Map<Ingredient>(ingredientDTO);
             ingredient.Id = id;
 

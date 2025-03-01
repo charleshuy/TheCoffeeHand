@@ -8,6 +8,7 @@ using AutoMapper.QueryableExtensions;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 using Interfracture.PaggingItems;
+using static Interfracture.Base.BaseException;
 
 namespace Services.Services
 {
@@ -26,6 +27,11 @@ namespace Services.Services
 
         public async Task<CategoryResponseDTO> CreateCategoryAsync(CategoryRequestDTO categoryDTO)
         {
+            var existingCategory = await _unitOfWork.GetRepository<Category>().Entities.FirstOrDefaultAsync(c => c.Name != null && c.Name.ToLower() == categoryDTO.Name.ToLower());
+            if (existingCategory != null)
+            {
+                throw new BadRequestException("bad_request", "Category with the same name already exists.");
+            }
             var categoryRepo = _unitOfWork.GetRepository<Category>();
 
             var category = _mapper.Map<Category>(categoryDTO);
@@ -90,6 +96,11 @@ namespace Services.Services
 
         public async Task<CategoryResponseDTO> UpdateCategoryAsync(Guid id, CategoryRequestDTO categoryDTO)
         {
+            var existingCategory = await _unitOfWork.GetRepository<Category>().Entities.FirstOrDefaultAsync(c => c.Id != id && c.Name != null && c.Name.ToLower() == categoryDTO.Name.ToLower());
+            if (existingCategory != null)
+            {
+                throw new BadRequestException("bad_request", "Category with the same name already exists.");
+            }
             string cacheKey = $"category_{id}";
             var categoryRepo = _unitOfWork.GetRepository<Category>();
 

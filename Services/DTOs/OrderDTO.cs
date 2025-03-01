@@ -16,6 +16,6 @@ namespace Services.DTOs
     public class OrderRequestDTO
     {
         public EnumOrderStatus? Status { get; set; }
-        public Guid? UserId { get; set; }
+        public required Guid UserId { get; set; }
     }
 }

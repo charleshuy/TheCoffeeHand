@@ -16,6 +16,7 @@ namespace Services.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IRedisCacheServices _cacheService;
+        private readonly IUserServices _userServices;
 
         public OrderService(IUnitOfWork unitOfWork, IMapper mapper, IRedisCacheServices cacheService)
         {
@@ -95,6 +96,21 @@ namespace Services.Services
             await _cacheService.SetAsync(cacheKey, paginatedOrders, TimeSpan.FromMinutes(30));
 
             return paginatedOrders;
+        }
+
+        public async Task<OrderResponseDTO> GetCartAsync()
+        {
+            var userId = _userServices.GetCurrentUserId();
+            var cart = await _unitOfWork.GetRepository<Order>()
+                .Entities
+                .Include(o => o.OrderDetails)
+                .FirstOrDefaultAsync(o => o.UserId.ToString() == userId && o.Status == 0);
+            if (cart == null) 
+            {
+                var newCart = new OrderRequestDTO { UserId = Guid.Parse(userId), Status = 0 };
+                return await CreateOrderAsync(newCart);
+            }
+            return _mapper.Map<OrderResponseDTO>(cart); ;
         }
 
         // Update order

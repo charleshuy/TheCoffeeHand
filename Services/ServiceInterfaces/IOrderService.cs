@@ -1,6 +1,5 @@
 ﻿using Interfracture.PaggingItems;
 using Services.DTOs;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Services.ServiceInterfaces
 {
@@ -11,5 +10,6 @@ namespace Services.ServiceInterfaces
         Task<PaginatedList<OrderResponseDTO>> GetOrdersAsync(int pageNumber, int pageSize, Guid? userId, DateTimeOffset? date);
         Task<OrderResponseDTO> UpdateOrderAsync(Guid id, OrderRequestDTO orderDTO);
         Task DeleteOrderAsync(Guid id);
+        Task<OrderResponseDTO> GetCartAsync();
     }
 }
