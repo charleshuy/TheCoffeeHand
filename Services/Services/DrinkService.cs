@@ -5,6 +5,7 @@ using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 using static Interfracture.Base.BaseException;
@@ -26,6 +27,11 @@ namespace Services.Services
 
         public async Task<DrinkResponseDTO> CreateDrinkAsync(DrinkRequestDTO drinkDTO)
         {
+            var existingDrink = await _unitOfWork.GetRepository<Drink>().Entities.FirstOrDefaultAsync(d => d.Name != null && d.Name.ToLower() == drinkDTO.Name.ToLower());
+            if (existingDrink != null)
+            {
+                throw new BadRequestException("bad_request", "Drink with the same name already exists.");
+            }
             var drink = _mapper.Map<Drink>(drinkDTO);
             await _unitOfWork.GetRepository<Drink>().InsertAsync(drink);
             await _unitOfWork.SaveAsync();
@@ -114,8 +120,14 @@ namespace Services.Services
 
         public async Task<DrinkResponseDTO> UpdateDrinkAsync(Guid id, DrinkRequestDTO drinkDTO)
         {
+            var existingDrink = await _unitOfWork.GetRepository<Drink>().Entities.FirstOrDefaultAsync(d => d.Id != id && d.Name != null && d.Name.ToLower() == drinkDTO.Name.ToLower());
+            if (existingDrink != null)
+            {
+                throw new BadRequestException("bad_request", "Drink with the same name already exists.");
+            }
             var drink = _mapper.Map<Drink>(drinkDTO);
             drink.Id = id;
+
 
             await _unitOfWork.GetRepository<Drink>().UpdateAsync(drink);
             await _unitOfWork.SaveAsync();

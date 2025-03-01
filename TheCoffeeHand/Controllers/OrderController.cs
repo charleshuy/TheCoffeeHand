@@ -59,6 +59,17 @@ namespace TheCoffeeHand.Controllers
         }
 
         /// <summary>
+        /// Retrieves cart for current user.
+        /// </summary>
+        [HttpGet("cart")]
+        public async Task<IActionResult> GetCart()
+        {
+            var order = await _orderService.GetCartAsync();
+
+            return Ok(order);
+        }
+
+        /// <summary>
         /// Retrieves paginated orders, optionally filtered by user and date.
         /// </summary>
         /// <param name="userId">Optional user ID filter.</param>
