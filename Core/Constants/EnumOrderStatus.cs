@@ -36,6 +36,6 @@ namespace Core.Constants
         /// <summary>
         /// The order failed or was canceled.
         /// </summary>
-        Failed = 5
+        Canceled = 5
     }
 }

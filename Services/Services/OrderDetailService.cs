@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Interfracture.Base;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
@@ -26,7 +27,6 @@ namespace Services.Services
         {
             var orderDetail = _mapper.Map<OrderDetail>(dto);
 
-            // Fetch the order/cart
             var cart = await _unitOfWork.GetRepository<Order>()
                 .Entities
                 .Include(o => o.OrderDetails!)
@@ -34,90 +34,23 @@ namespace Services.Services
                 .FirstOrDefaultAsync(c => c.Id == orderDetail.OrderId && c.Status == 0);
 
             if (cart == null)
-                throw new Exception("Cart not found");
+                throw new BaseException.NotFoundException("not_found" ,"Cart not found");
 
-            // Fetch all recipes for the drink (many-to-many)
-            var recipes = await _unitOfWork.GetRepository<Recipe>()
-                .Entities
-                .Where(r => r.DrinkId == orderDetail.DrinkId)
-                .Include(r => r.Ingredient) // Load related ingredient
-                .ToListAsync();
+            // Validate ingredient stock
+            await ValidateIngredientStockAsync(orderDetail.DrinkId ?? throw new Exception("DrinkId cannot be null"), orderDetail.Total);
 
-            if (!recipes.Any())
-                throw new Exception("No recipes found for this drink");
 
-            // Dictionary to track required ingredient quantities
-            var requiredIngredients = new Dictionary<Guid, int>(); // {IngredientId, TotalRequired}
-
-            // Calculate total required quantity for each ingredient
-            foreach (var recipe in recipes)
-            {
-                if (recipe.Ingredient == null)
-                    throw new Exception($"Ingredient missing for recipe ID: {recipe.Id}");
-
-                int requiredQuantity = orderDetail.Total * recipe.Quantity;
-
-                if (requiredIngredients.ContainsKey(recipe.Ingredient.Id))
-                {
-                    requiredIngredients[recipe.Ingredient.Id] += requiredQuantity;
-                }
-                else
-                {
-                    requiredIngredients[recipe.Ingredient.Id] = requiredQuantity;
-                }
-            }
-
-            // Fetch all involved ingredients from DB
-            var ingredientIds = requiredIngredients.Keys.ToList();
-            var ingredients = await _unitOfWork.GetRepository<Ingredient>()
-                .Entities
-                .Where(i => ingredientIds.Contains(i.Id))
-                .ToListAsync();
-
-            if (ingredients.Count != requiredIngredients.Count)
-                throw new Exception("Some required ingredients are missing in the database");
-
-            // Validate stock availability
-            foreach (var ingredient in ingredients)
-            {
-                if (ingredient.Quantity < requiredIngredients[ingredient.Id])
-                    throw new Exception($"Not enough stock for ingredient: {ingredient.Name}");
-            }
-
-            // Deduct ingredient stock
-            foreach (var ingredient in ingredients)
-            {
-                ingredient.Quantity -= requiredIngredients[ingredient.Id];
-                _unitOfWork.GetRepository<Ingredient>().Update(ingredient);
-            }
-
-            // Use a transaction to ensure atomic updates
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
-                    // Add the new order detail
                     await _unitOfWork.GetRepository<OrderDetail>().InsertAsync(orderDetail);
-                    await _unitOfWork.SaveAsync(); // Save ingredient stock updates
+                    await _unitOfWork.SaveAsync();
 
-                    // Re-fetch cart after adding order detail
-                    cart = await _unitOfWork.GetRepository<Order>()
-                        .Entities
-                        .Include(o => o.OrderDetails!)
-                            .ThenInclude(od => od.Drink)
-                        .FirstOrDefaultAsync(c => c.Id == orderDetail.OrderId && c.Status == 0);
-
-                    if (cart == null)
-                        throw new Exception("Cart not found");
-
-                    // Recalculate total price
-                    cart.TotalPrice = cart.OrderDetails!.Sum(od => (od.Drink != null ? od.Drink.Price : 0) * od.Total);
-
-                    // Save updated cart price
+                    cart.TotalPrice += orderDetail.Total * (orderDetail.Drink?.Price ?? 0);
                     _unitOfWork.GetRepository<Order>().Update(cart);
                     await _unitOfWork.SaveAsync();
 
-                    // Commit transaction
                     await transaction.CommitAsync();
                 }
                 catch
@@ -127,17 +60,51 @@ namespace Services.Services
                 }
             }
 
-            // Clear cache when data changes
             await _cacheService.RemoveByPrefixAsync("order_details_");
             await _cacheService.RemoveByPrefixAsync("orders_");
 
             return _mapper.Map<OrderDetailResponselDTO>(orderDetail);
         }
 
+        private async Task ValidateIngredientStockAsync(Guid drinkId, int quantity)
+        {
+            var recipes = await _unitOfWork.GetRepository<Recipe>()
+                .Entities
+                .Where(r => r.DrinkId == drinkId)
+                .Include(r => r.Ingredient)
+                .ToListAsync();
+
+            if (!recipes.Any())
+                throw new BaseException.NotFoundException("not_found", "No recipes found for this drink");
+
+            var requiredIngredients = recipes
+                .Where(r => r.Ingredient != null)
+                .ToLookup(r => r.Ingredient!.Id, r => r.Quantity * quantity)
+                .ToDictionary(g => g.Key, g => g.Sum());
+
+            var ingredients = await _unitOfWork.GetRepository<Ingredient>()
+                .Entities
+                .Where(i => requiredIngredients.Keys.Contains(i.Id))
+                .ToListAsync();
+
+            if (ingredients.Count != requiredIngredients.Count)
+                throw new Exception("Some required ingredients are missing in the database");
+
+            foreach (var ingredient in ingredients)
+            {
+                if (ingredient.Quantity < requiredIngredients[ingredient.Id])
+                    throw new Exception($"Not enough stock for ingredient: {ingredient.Name}");
+            }
+        }
+
+
         public async Task<bool> RemoveFromCartAsync(Guid orderDetailId)
         {
             // Fetch the order detail with related drink and order
-            var orderDetail = await _unitOfWork.GetRepository<OrderDetail>()
+            var orderDetailRepo = _unitOfWork.GetRepository<OrderDetail>();
+            var orderRepo = _unitOfWork.GetRepository<Order>();
+
+            var orderDetail = await orderDetailRepo
                 .Entities
                 .Include(od => od.Drink)
                 .FirstOrDefaultAsync(od => od.Id == orderDetailId);
@@ -146,85 +113,31 @@ namespace Services.Services
                 throw new Exception("Order detail not found");
 
             // Fetch the cart (order) associated with this order detail
-            var cart = await _unitOfWork.GetRepository<Order>()
+            var cart = await orderRepo
                 .Entities
                 .Include(o => o.OrderDetails!)
+                .ThenInclude(od => od.Drink)
                 .FirstOrDefaultAsync(o => o.Id == orderDetail.OrderId && o.Status == 0);
 
             if (cart == null)
                 throw new Exception("Cart not found");
 
-            // Fetch recipes related to the drink
-            var recipes = await _unitOfWork.GetRepository<Recipe>()
-                .Entities
-                .Where(r => r.DrinkId == orderDetail.DrinkId)
-                .Include(r => r.Ingredient)
-                .ToListAsync();
-
-            if (!recipes.Any())
-                throw new Exception("No recipes found for this drink");
-
-            // Dictionary to track ingredients to be restored
-            var restoreIngredients = new Dictionary<Guid, int>(); // {IngredientId, QuantityToRestore}
-
-            // Calculate quantity to restore
-            foreach (var recipe in recipes)
-            {
-                if (recipe.Ingredient == null)
-                    throw new Exception($"Ingredient missing for recipe ID: {recipe.Id}");
-
-                int restoreQuantity = orderDetail.Total * recipe.Quantity;
-
-                if (restoreIngredients.ContainsKey(recipe.Ingredient.Id))
-                {
-                    restoreIngredients[recipe.Ingredient.Id] += restoreQuantity;
-                }
-                else
-                {
-                    restoreIngredients[recipe.Ingredient.Id] = restoreQuantity;
-                }
-            }
-
-            // Fetch affected ingredients
-            var ingredientIds = restoreIngredients.Keys.ToList();
-            var ingredients = await _unitOfWork.GetRepository<Ingredient>()
-                .Entities
-                .Where(i => ingredientIds.Contains(i.Id))
-                .ToListAsync();
-
-            if (ingredients.Count != restoreIngredients.Count)
-                throw new Exception("Some ingredients not found in the database");
-
-            // Use a transaction to ensure atomic updates
+            // Start a database transaction
             using (var transaction = await _unitOfWork.BeginTransactionAsync())
             {
                 try
                 {
-                    // Restore ingredient stock
-                    foreach (var ingredient in ingredients)
-                    {
-                        ingredient.Quantity += restoreIngredients[ingredient.Id];
-                        _unitOfWork.GetRepository<Ingredient>().Update(ingredient);
-                    }
-
                     // Remove order detail from cart
-                    _unitOfWork.GetRepository<OrderDetail>().Delete(orderDetail);
+                    orderDetailRepo.Delete(orderDetail);
                     await _unitOfWork.SaveAsync();
 
-                    // Recalculate total price
-                    cart = await _unitOfWork.GetRepository<Order>()
-                        .Entities
-                        .Include(o => o.OrderDetails!)
-                            .ThenInclude(od => od.Drink)
-                        .FirstOrDefaultAsync(c => c.Id == orderDetail.OrderId && c.Status == 0);
-
-                    if (cart == null)
-                        throw new Exception("Cart not found after update");
-
-                    cart.TotalPrice = cart.OrderDetails!.Sum(od => (od.Drink != null ? od.Drink.Price : 0) * od.Total);
+                    // Recalculate cart total price
+                    cart.TotalPrice = cart.OrderDetails!
+                        .Where(od => od.Drink != null)
+                        .Sum(od => od.Drink!.Price * od.Total);
 
                     // Save updated cart price
-                    _unitOfWork.GetRepository<Order>().Update(cart);
+                    orderRepo.Update(cart);
                     await _unitOfWork.SaveAsync();
 
                     // Commit transaction
@@ -243,6 +156,7 @@ namespace Services.Services
 
             return true;
         }
+
 
 
         public async Task<OrderDetailResponselDTO> GetOrderDetailByIdAsync(Guid id)

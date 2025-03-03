@@ -1,6 +1,8 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Core.Constants;
 using Core.Utils;
+using Interfracture.Base;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
@@ -46,6 +48,197 @@ namespace Services.Services
 
             return _mapper.Map<OrderResponseDTO>(order);
         }
+
+        public async Task ConfirmOrderAsync(Guid orderId)
+        {
+            var orderRepository = _unitOfWork.GetRepository<Order>();
+            var ingredientRepository = _unitOfWork.GetRepository<Ingredient>();
+
+            // Fetch order with details and drinks
+            var order = await orderRepository
+                .Entities
+                .Include(o => o.OrderDetails!)
+                    .ThenInclude(od => od.Drink)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order == null)
+                throw new BaseException.NotFoundException("not_found", "Order not found");
+
+            if (order.Status != EnumOrderStatus.Cart)
+                throw new BaseException.BadRequestException("invalid_status", "Order cannot be confirmed at this stage");
+
+            var orderDetails = order.OrderDetails?.ToList() ?? new List<OrderDetail>();
+
+            if (!orderDetails.Any())
+                throw new BaseException.BadRequestException("empty_order", "Cannot confirm an empty order");
+
+            // Collect all drink IDs
+            var drinkIds = orderDetails.Select(od => od.DrinkId).Distinct().ToList();
+
+            // Fetch all required recipes at once
+            var recipes = await _unitOfWork.GetRepository<Recipe>()
+                .Entities
+                .Where(r => drinkIds.Contains(r.DrinkId))
+                .Include(r => r.Ingredient)
+                .ToListAsync();
+
+            if (!recipes.Any())
+                throw new BaseException.BadRequestException("recipe_not_found", "No recipes found for the drinks in this order");
+
+            // Calculate required ingredient quantities
+            var requiredIngredients = new Dictionary<Guid, int>();
+
+            foreach (var orderDetail in orderDetails)
+            {
+                var drinkRecipes = recipes.Where(r => r.DrinkId == orderDetail.DrinkId);
+
+                foreach (var recipe in drinkRecipes)
+                {
+                    if (recipe.Ingredient == null)
+                        continue;
+
+                    var requiredQuantity = recipe.Quantity * orderDetail.Total;
+
+                    if (requiredIngredients.ContainsKey(recipe.Ingredient.Id))
+                        requiredIngredients[recipe.Ingredient.Id] += requiredQuantity;
+                    else
+                        requiredIngredients[recipe.Ingredient.Id] = requiredQuantity;
+                }
+            }
+
+            // Fetch required ingredients from DB
+            var ingredients = await ingredientRepository
+                .Entities
+                .Where(i => requiredIngredients.Keys.Contains(i.Id))
+                .ToListAsync();
+
+            if (ingredients.Count != requiredIngredients.Count)
+                throw new BaseException.BadRequestException("missing_ingredients", "Some required ingredients are missing in the database");
+
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Deduct stock inside transaction
+                    foreach (var ingredient in ingredients)
+                    {
+                        if (ingredient.Quantity < requiredIngredients[ingredient.Id])
+                            throw new BaseException.BadRequestException("not_enough_stock", $"Not enough stock for ingredient: {ingredient.Name}");
+
+                        ingredient.Quantity -= requiredIngredients[ingredient.Id];
+                        ingredientRepository.Update(ingredient);
+                    }
+
+                    // Update order status
+                    order.Status = EnumOrderStatus.Confirmed;
+                    orderRepository.Update(order);
+
+                    await _unitOfWork.SaveAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+
+            await _cacheService.RemoveByPrefixAsync("orders_");
+        }
+
+        public async Task CancelOrderAsync(Guid orderId)
+        {
+            var orderRepository = _unitOfWork.GetRepository<Order>();
+            var ingredientRepository = _unitOfWork.GetRepository<Ingredient>();
+
+            // Fetch order with details and drinks
+            var order = await orderRepository
+                .Entities
+                .Include(o => o.OrderDetails!)
+                    .ThenInclude(od => od.Drink)
+                .FirstOrDefaultAsync(o => o.Id == orderId);
+
+            if (order == null)
+                throw new BaseException.NotFoundException("not_found", "Order not found");
+
+            if (order.Status != EnumOrderStatus.Confirmed)
+                throw new BaseException.BadRequestException("invalid_status", "Only confirmed orders can be canceled");
+
+            var orderDetails = order.OrderDetails?.ToList() ?? new List<OrderDetail>();
+
+            if (!orderDetails.Any())
+                throw new BaseException.BadRequestException("empty_order", "Cannot cancel an empty order");
+
+            // Collect all drink IDs
+            var drinkIds = orderDetails.Select(od => od.DrinkId).Distinct().ToList();
+
+            // Fetch all required recipes at once
+            var recipes = await _unitOfWork.GetRepository<Recipe>()
+                .Entities
+                .Where(r => drinkIds.Contains(r.DrinkId))
+                .Include(r => r.Ingredient)
+                .ToListAsync();
+
+            if (!recipes.Any())
+                throw new BaseException.BadRequestException("recipe_not_found", "No recipes found for the drinks in this order");
+
+            // Calculate ingredients to be restocked
+            var restockIngredients = new Dictionary<Guid, int>();
+
+            foreach (var orderDetail in orderDetails)
+            {
+                var drinkRecipes = recipes.Where(r => r.DrinkId == orderDetail.DrinkId);
+
+                foreach (var recipe in drinkRecipes)
+                {
+                    if (recipe.Ingredient == null)
+                        continue;
+
+                    var restockQuantity = recipe.Quantity * orderDetail.Total;
+
+                    if (restockIngredients.ContainsKey(recipe.Ingredient.Id))
+                        restockIngredients[recipe.Ingredient.Id] += restockQuantity;
+                    else
+                        restockIngredients[recipe.Ingredient.Id] = restockQuantity;
+                }
+            }
+
+            // Fetch required ingredients from DB
+            var ingredients = await ingredientRepository
+                .Entities
+                .Where(i => restockIngredients.Keys.Contains(i.Id))
+                .ToListAsync();
+
+            using (var transaction = await _unitOfWork.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Restock ingredients inside transaction
+                    foreach (var ingredient in ingredients)
+                    {
+                        ingredient.Quantity += restockIngredients[ingredient.Id];
+                        ingredientRepository.Update(ingredient);
+                    }
+
+                    // Update order status
+                    order.Status = EnumOrderStatus.Canceled;
+                    orderRepository.Update(order);
+
+                    await _unitOfWork.SaveAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+
+            await _cacheService.RemoveByPrefixAsync("orders_");
+        }
+
+
+
 
         // Get order by ID
         public async Task<OrderResponseDTO> GetOrderByIdAsync(Guid id)

@@ -119,5 +119,27 @@ namespace TheCoffeeHand.Controllers
             await _orderService.DeleteOrderAsync(id);
             return NoContent();
         }
+
+        /// <summary>
+        /// Comfirm an order by ID.
+        /// </summary>
+        /// <param name="id">The order ID.</param>
+        [HttpPost("{id}/confirm")]
+        public async Task<IActionResult> ConfirmOrder(Guid id)
+        {
+            await _orderService.ConfirmOrderAsync(id);
+            return Ok("Order confirmed successfully.");
+        }
+
+        /// <summary>
+        /// Cancel an order by ID.
+        /// </summary>
+        /// <param name="id">The order ID.</param>
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> CancelOrder(Guid id)
+        {
+            await _orderService.CancelOrderAsync(id);
+            return Ok("Order canceled successfully.");
+        }
     }
 }
