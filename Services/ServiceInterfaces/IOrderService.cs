@@ -11,5 +11,7 @@ namespace Services.ServiceInterfaces
         Task<OrderResponseDTO> UpdateOrderAsync(Guid id, OrderRequestDTO orderDTO);
         Task DeleteOrderAsync(Guid id);
         Task<OrderResponseDTO> GetCartAsync();
+        Task ConfirmOrderAsync(Guid orderId);
+        Task CancelOrderAsync(Guid orderId);
     }
 }
