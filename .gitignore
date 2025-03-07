@@ -370,3 +370,4 @@ FodyWeavers.xsd
 /TheCoffeeHand/TheCoffeeHandDb.db
 /TheCoffeeHand/TheCoffeeHandDb.db-shm
 /TheCoffeeHand/TheCoffeeHandDb.db-wal
+/TheCoffeeHand/.env

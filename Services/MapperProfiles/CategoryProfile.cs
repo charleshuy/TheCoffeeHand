@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Interfracture.Entities;
+using Domain.Entities;
 using Services.DTOs;
 
 namespace Services.MapperProfiles

@@ -1,6 +1,6 @@
-﻿using FirebaseAdmin;
+﻿using Domain.Base;
+using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
-using Interfracture.Base;
 using Interfracture.Entities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;

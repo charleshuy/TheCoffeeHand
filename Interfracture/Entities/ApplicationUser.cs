@@ -1,4 +1,5 @@
 ﻿
+using Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace Interfracture.Entities

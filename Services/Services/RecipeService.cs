@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Interfracture.Entities;
+using Domain.Entities;
 using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
 using Microsoft.EntityFrameworkCore;

@@ -1,6 +1,6 @@
-﻿using Interfracture.Base;
+﻿using Domain.Base;
 
-namespace Interfracture.Entities
+namespace Domain.Entities
 {
     public class Ingredient : BaseEntity
     {

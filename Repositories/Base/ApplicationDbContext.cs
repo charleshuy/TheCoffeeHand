@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Interfracture.Entities;
+using Domain.Entities;
 
 namespace Repositories.Base
 {

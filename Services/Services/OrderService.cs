@@ -1,8 +1,9 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Core.Constants;
+using Core.Constants.Enum;
 using Core.Utils;
-using Interfracture.Base;
+using Domain.Base;
+using Domain.Entities;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
@@ -11,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 using System.Security.Claims;
-using static Interfracture.Base.BaseException;
+using static Domain.Base.BaseException;
 
 namespace Services.Services
 {

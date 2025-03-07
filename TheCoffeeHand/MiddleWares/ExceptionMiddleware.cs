@@ -1,4 +1,4 @@
-﻿using Interfracture.Base;
+﻿using Domain.Base;
 using System.Text.Json;
 
 namespace TheCoffeeHand.MiddleWares

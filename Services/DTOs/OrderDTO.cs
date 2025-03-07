@@ -1,4 +1,4 @@
-﻿using Core.Constants;
+﻿using Core.Constants.Enum;
 using System.Text.Json.Serialization;
 
 namespace Services.DTOs

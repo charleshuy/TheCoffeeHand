@@ -1,10 +1,8 @@
 ﻿using FirebaseAdmin.Auth;
-using Interfracture.Base;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
 using Services.ServiceInterfaces;
-using System.Threading.Tasks;
 
 /// <summary>
 /// Controller for handling authentication and authorization.
