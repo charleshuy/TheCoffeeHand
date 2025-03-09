@@ -1,4 +1,4 @@
-﻿using Interfracture.Base;
+﻿using Domain.Base;
 using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Interfracture.Interfaces

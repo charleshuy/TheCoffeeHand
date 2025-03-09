@@ -1,6 +1,6 @@
 ﻿using Core.Utils;
 
-namespace Interfracture.Base
+namespace Domain.Base
 {
     public class BaseResponse<T>
     {

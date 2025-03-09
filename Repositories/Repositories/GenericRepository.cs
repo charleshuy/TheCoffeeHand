@@ -1,5 +1,4 @@
-﻿
-using Interfracture.Interfaces;
+﻿using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
 using Microsoft.EntityFrameworkCore;
 using Repositories.Base;

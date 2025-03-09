@@ -1,4 +1,4 @@
-﻿using Interfracture.Base;
+﻿using Domain.Base;
 using Interfracture.PaggingItems;
 using Services.DTOs;
 

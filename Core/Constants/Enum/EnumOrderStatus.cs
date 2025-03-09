@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Core.Constants
+namespace Core.Constants.Enum
 {
     /// <summary>
     /// Defines the different statuses of an order.

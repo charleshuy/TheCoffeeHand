@@ -1,5 +1,5 @@
-﻿using FirebaseAdmin.Auth;
-using Interfracture.Base;
+﻿using Domain.Base;
+using FirebaseAdmin.Auth;
 using Interfracture.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
@@ -80,9 +80,6 @@ namespace Services.Services
                 throw new Exception("Invalid Firebase token.");
             }
         }
-
-
-
 
         private async Task<string> GenerateJwtToken(ApplicationUser user, UserManager<ApplicationUser> userManager)
         {

@@ -8,6 +8,5 @@ namespace Interfracture.Entities
     {
         public ApplicationRole() : base() { }
         public ApplicationRole(string roleName) : base(roleName) { }
-
     }
 }

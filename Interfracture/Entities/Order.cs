@@ -1,8 +1,8 @@
-﻿using Core.Constants;
-using Interfracture.Base;
-using System.Text.Json.Serialization;
+﻿using Core.Constants.Enum;
+using Domain.Base;
+using Interfracture.Entities;
 
-namespace Interfracture.Entities
+namespace Domain.Entities
 {
     public class Order : BaseEntity
     {

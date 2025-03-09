@@ -1,14 +1,14 @@
 ﻿using AutoMapper;
-using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Core.Utils;
-using Interfracture.Base;
 using AutoMapper.QueryableExtensions;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 using Interfracture.PaggingItems;
-using static Interfracture.Base.BaseException;
+using static Domain.Base.BaseException;
+using Domain.Base;
+using Domain.Entities;
 
 namespace Services.Services
 {

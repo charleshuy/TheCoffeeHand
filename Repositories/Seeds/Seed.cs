@@ -1,4 +1,5 @@
-﻿using Core.Constants;
+﻿using Core.Constants.Enum;
+using Domain.Entities;
 using Interfracture.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
