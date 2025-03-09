@@ -1,4 +1,5 @@
-﻿using Domain.Base;
+﻿using CloudinaryDotNet;
+using Domain.Base;
 using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
 using Interfracture.Entities;
@@ -10,6 +11,7 @@ using Microsoft.OpenApi.Models;
 using Repositories;
 using Repositories.Base;
 using Services;
+using Services.Config;
 using StackExchange.Redis;
 using System.Reflection;
 using System.Security.Claims;
@@ -78,6 +80,18 @@ namespace TheCoffeeHand
                 };
 
                 return ConnectionMultiplexer.Connect(options);
+            });
+
+            services.AddSingleton(provider =>
+            {
+                var config = provider.GetRequiredService<IConfiguration>();
+                var cloudinarySettings = config.GetSection("CloudinarySettings").Get<CloudinarySettings>();
+
+                return new Cloudinary(new Account(
+                    cloudinarySettings!.CloudName,
+                    cloudinarySettings.ApiKey,
+                    cloudinarySettings.ApiSecret
+                ));
             });
         }
 

@@ -20,6 +20,7 @@ namespace Services
             services.AddScoped<IOrderDetailService, OrderDetailService>();
             //services.AddScoped<IFCMService, FCMService>();
             services.AddHttpClient<IFCMService, FCMService>();
+            services.AddScoped<IImageService, ImageService>();
         }
     }
 }
