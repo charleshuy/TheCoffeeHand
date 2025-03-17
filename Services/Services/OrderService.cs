@@ -9,9 +9,12 @@ using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Services.DTOs;
 using Services.ServiceInterfaces;
+using Services.MessageEvent;
 using System.Security.Claims;
+using Interfracture.MessageBroker;
 using static Domain.Base.BaseException;
 
 namespace Services.Services
@@ -23,14 +26,16 @@ namespace Services.Services
         private readonly IRedisCacheServices _cacheService;
         private readonly IUserServices _userServices;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRabbitMQService _rabbitMQService;
 
-        public OrderService(IUnitOfWork unitOfWork, IMapper mapper, IRedisCacheServices cacheService, IUserServices userServices, IHttpContextAccessor httpContextAccessor)
+        public OrderService(IUnitOfWork unitOfWork, IMapper mapper, IRedisCacheServices cacheService, IUserServices userServices, IHttpContextAccessor httpContextAccessor, IRabbitMQService rabbitMQService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _cacheService = cacheService;
             _userServices = userServices;
             _httpContextAccessor = httpContextAccessor;
+            _rabbitMQService = rabbitMQService;
         }
 
 
@@ -68,7 +73,8 @@ namespace Services.Services
             if (order.Status != EnumOrderStatus.Cart)
                 throw new BaseException.BadRequestException("invalid_status", "Order cannot be confirmed at this stage");
 
-            var orderDetails = order.OrderDetails?.ToList() ?? new List<OrderDetail>();
+            var orderDetails = order.OrderDetails?.ToList() ??
+                new List<OrderDetail>();
 
             if (!orderDetails.Any())
                 throw new BaseException.BadRequestException("empty_order", "Cannot confirm an empty order");
@@ -136,6 +142,35 @@ namespace Services.Services
 
                     await _unitOfWork.SaveAsync();
                     await transaction.CommitAsync();
+
+                    var orderMessage = new {
+                        OrderId = order.Id,
+                        UserId = order.UserId,
+                        Drinks = orderDetails.Select(od => new
+                        {
+                            DrinkId = od.DrinkId,
+                            DrinkName = od.Drink?.Name,
+                            Quantity = od.Total
+                        }).ToList(),
+                    };
+
+                    //await _eventBus.PublishAsync(
+                    //    new OrderCreateEvent {
+                    //        OrderId = order.Id,
+                    //        OrderDetails = (ICollection<OrderDetail>) orderDetails.Select(od => new {
+                    //            DrinkId = od.DrinkId,
+                    //            DrinkName = od.Drink?.Name,
+                    //            Quantity = od.Total
+                    //        }).ToList()
+                    //    }
+                    //);
+
+                    //string messagePayload = JsonConvert.SerializeObject(orderMessage);
+                    //_eventBus.Publish("order_confirmed_queue", messagePayload);
+
+                    string jsonMessage = JsonConvert.SerializeObject(orderMessage);
+
+                    await _rabbitMQService.SendMessageAsync("order_queue", jsonMessage);
                 }
                 catch
                 {
@@ -145,6 +180,8 @@ namespace Services.Services
             }
 
             await _cacheService.RemoveByPrefixAsync("orders_");
+
+
         }
 
         public async Task CancelOrderAsync(Guid orderId)
@@ -350,6 +387,10 @@ namespace Services.Services
 
             await _cacheService.RemoveAsync($"order_{id}");
             await _cacheService.RemoveByPrefixAsync("orders_");
+        }
+
+        public async Task TestSendMessage(string message) {
+            await _rabbitMQService.SendMessageAsync("test_queue", message);
         }
     }
 }
