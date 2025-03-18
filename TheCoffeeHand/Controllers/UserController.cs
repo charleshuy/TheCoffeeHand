@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Services.DTOs;
 using Services.ServiceInterfaces;
 using System.Threading.Tasks;
 
@@ -65,6 +66,13 @@ namespace TheCoffeeHand.Controllers
             {
                 return NotFound(new { message = "User not found." });
             }
+            return Ok(user);
+        }
+
+        [HttpPut("{userId}")]
+        public async Task<IActionResult> UpdateUser(Guid userId, UserRequestDTO updateUser)
+        {
+            var user = await _userServices.UpdateUser(userId, updateUser);
             return Ok(user);
         }
     }

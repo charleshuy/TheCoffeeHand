@@ -11,6 +11,8 @@ namespace Services.MapperProfiles
         {
             CreateMap<ApplicationUser, UserDTO>()
                 .ForMember(dest => dest.Roles, opt => opt.Ignore()).ReverseMap();
+            CreateMap<ApplicationUser, UserRequestDTO>()
+                .ForMember(dest => dest.Roles, opt => opt.Ignore()).ReverseMap();
         }
     }
 }

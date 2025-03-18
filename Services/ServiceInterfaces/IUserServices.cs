@@ -17,5 +17,6 @@ namespace Services.ServiceInterfaces
         Task<UserDTO?> GetUserByIdAsync(string userId);
         Task<UserDTO?> GetCurrentUserAsync();
         public string? GetCurrentUserId();
+        Task<UserDTO> UpdateUser(Guid id, UserRequestDTO userDto);
     }
 }
