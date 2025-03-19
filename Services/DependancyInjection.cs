@@ -5,9 +5,9 @@ using Services.Services.RedisCache;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
+using Services.Services.MessageQueue;
 
-namespace Services
-{
+namespace Services {
     public static class DependencyInjection
     {
         public static void AddServiceLayer(this IServiceCollection services, IConfiguration configuration)
@@ -60,6 +60,8 @@ namespace Services
 
             services.AddSingleton(factory);
             services.AddSingleton<IRabbitMQService, RabbitMQService>();
+            services.AddSingleton<IRabbitMQConsumerService, RabbitMQMessageProcessor>();
+            services.AddHostedService<RabbitMQConsumerService>();
         }
     }
 }

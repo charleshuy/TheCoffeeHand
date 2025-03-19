@@ -8,7 +8,7 @@ EXPOSE 8081
 ENV ConnectionStrings__DefaultConnection="Data Source=/app/TheCoffeeHandDb.db"
 
 # Build stage for compiling the project
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
