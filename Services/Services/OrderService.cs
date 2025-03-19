@@ -389,8 +389,21 @@ namespace Services.Services
             await _cacheService.RemoveByPrefixAsync("orders_");
         }
 
-        public async Task TestSendMessage(string message) {
-            await _rabbitMQService.SendMessageAsync("test_queue", message);
+        public async Task TestSendMessage() {
+            // Tạo dữ liệu giả cho order gồm 1 Milk Coffee và 1 Espresso
+            var fakeOrderMessage = new {
+                OrderId = Guid.Parse("11111111-2222-3333-4444-555555555555"),
+                UserId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+                Drinks = new[] {
+                    new { DrinkId = Guid.Parse("13A27675-CC46-4DDC-ABA5-E1A5151475C7"), DrinkName = "Milk Coffee", Quantity = 1 },
+                    new { DrinkId = Guid.Parse("DC52C1D4-10BE-4A00-AD67-F92BB916D998"), DrinkName = "Espresso", Quantity = 1 }
+                }
+            };
+
+            // Serialize sang JSON (nếu SendMessageAsync yêu cầu kiểu string)
+            string jsonMessage = JsonConvert.SerializeObject(fakeOrderMessage, Formatting.Indented);
+
+            await _rabbitMQService.SendMessageAsync("test_queue", jsonMessage);
         }
     }
 }

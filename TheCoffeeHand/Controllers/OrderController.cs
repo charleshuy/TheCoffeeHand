@@ -146,7 +146,7 @@ namespace TheCoffeeHand.Controllers
         /// <returns>The current cart order.</returns>
         [HttpPost("test-message")]
         public async Task<IActionResult> SendOrderMessage() {
-            await _orderService.TestSendMessage("grasp");
+            await _orderService.TestSendMessage();
 
             return Ok("grasp");
         }

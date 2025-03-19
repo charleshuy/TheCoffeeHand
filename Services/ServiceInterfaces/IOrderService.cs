@@ -13,6 +13,6 @@ namespace Services.ServiceInterfaces
         Task<OrderResponseDTO> GetCartAsync();
         Task ConfirmOrderAsync(Guid orderId);
         Task CancelOrderAsync(Guid orderId);
-        Task TestSendMessage(string message);
+        Task TestSendMessage();
     }
 }
