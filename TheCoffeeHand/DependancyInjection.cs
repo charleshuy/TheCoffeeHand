@@ -17,6 +17,9 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
+using RabbitMQ.Client;
+using Services.Services.RabbitMqServices;
+using IModel = RabbitMQ.Client.IModel;
 
 namespace TheCoffeeHand
 {
@@ -93,6 +96,7 @@ namespace TheCoffeeHand
                     cloudinarySettings.ApiSecret
                 ));
             });
+            services.AddRabbitMQ(configuration);
         }
 
         /// <summary>
@@ -159,6 +163,13 @@ namespace TheCoffeeHand
         {
             services.AddSwaggerGen(options =>
             {
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "The Coffee Hand API",
+                    Version = "v1",
+                    Description = "API for The Coffee Hand application"
+                });
+
                 options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Name = "Authorization",
@@ -170,25 +181,103 @@ namespace TheCoffeeHand
                 });
 
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
                 {
+                    Reference = new OpenApiReference
                     {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
-                        },
-                        new string[] {}
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
                     }
-                });
+                },
+                new string[] {}
+            }
+        });
 
                 // Enable XML Comments (for Swagger API Documentation)
                 var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFilename);
                 options.IncludeXmlComments(xmlPath);
             });
+        }
+
+        /// <summary>
+        /// Configures RabbitMQ services.
+        /// </summary>
+        /// <param name="services">The service collection to configure.</param>
+        /// <param name="configuration">The application configuration settings.</param>
+        //public static void AddRabbitMQ(this IServiceCollection services, IConfiguration configuration)
+        //{
+        //    var factory = new ConnectionFactory
+        //    {
+        //        HostName = configuration["RabbitMQ:HostName"] ?? "localhost",
+        //        UserName = configuration["RabbitMQ:UserName"] ?? "guest",
+        //        Password = configuration["RabbitMQ:Password"] ?? "guest",
+        //        VirtualHost = configuration["RabbitMQ:VirtualHost"] ?? "/",
+        //        Port = int.Parse(configuration["RabbitMQ:Port"] ?? "5672"),
+        //        Ssl = new SslOption
+        //        {
+        //            Enabled = configuration.GetValue<bool>("RabbitMQ:SslEnabled", false),
+        //            ServerName = configuration["RabbitMQ:HostName"] ?? "localhost"
+        //        }
+        //    };
+
+        //    services.AddSingleton<IConnection>(sp =>
+        //    {
+        //        try
+        //        {
+        //            var connection = factory.CreateConnection();
+        //            // Optional: Add logging here if you have ILogger available
+        //            return connection;
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            throw new InvalidOperationException($"Failed to connect to RabbitMQ: {ex.Message}", ex);
+        //        }
+        //    });
+
+        //    services.AddSingleton<Task<IModel>>(sp =>
+        //    {
+        //        var connection = sp.GetRequiredService<IConnection>();
+        //        return Task.FromResult(connection.CreateModel());
+        //    });
+
+        //    services.AddSingleton<RabbitMqPublisher>();
+        //}
+
+
+        public static void AddRabbitMQ(this IServiceCollection services, IConfiguration configuration)
+        {
+            var connectionString = configuration["RabbitMQ:ConnectionString"]
+                ?? throw new InvalidOperationException("RabbitMQ connection string is missing");
+
+            var factory = new ConnectionFactory
+            {
+                Uri = new Uri(connectionString),
+                AutomaticRecoveryEnabled = true // Optional: Enables auto-reconnect
+            };
+
+            services.AddSingleton<IConnection>(sp =>
+            {
+                try
+                {
+                    var connection = factory.CreateConnection();
+                    return connection;
+                }
+                catch (Exception ex)
+                {
+                    throw new InvalidOperationException($"Failed to connect to RabbitMQ: {ex.Message}", ex);
+                }
+            });
+
+            services.AddSingleton<Task<IModel>>(sp =>
+            {
+                var connection = sp.GetRequiredService<IConnection>();
+                return Task.FromResult(connection.CreateModel());
+            });
+
+            services.AddSingleton<RabbitMqPublisher>();
         }
     }
 }

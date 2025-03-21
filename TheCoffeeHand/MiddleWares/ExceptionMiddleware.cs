@@ -79,7 +79,7 @@ namespace TheCoffeeHand.MiddleWares
                 await HandleExceptionAsync(context, StatusCodes.Status500InternalServerError, new
                 {
                     errorCode = "INTERNAL_SERVER_ERROR",
-                    errorMessage = "An unexpected error occurred. Please try again later."
+                    errorMessage = ex.Message
                 }, ex);
             }
         }
