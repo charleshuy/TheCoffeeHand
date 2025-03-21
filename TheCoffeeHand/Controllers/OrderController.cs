@@ -139,5 +139,16 @@ namespace TheCoffeeHand.Controllers
             await _orderService.CancelOrderAsync(id);
             return Ok("Order canceled successfully.");
         }
+
+        /// <summary>
+        /// Sends a test message for the order.
+        /// </summary>
+        /// <returns>The current cart order.</returns>
+        [HttpPost("test-message")]
+        public async Task<IActionResult> SendOrderMessage() {
+            await _orderService.TestSendMessage();
+
+            return Ok("grasp");
+        }
     }
 }

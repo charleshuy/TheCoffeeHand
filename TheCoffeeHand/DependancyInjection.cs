@@ -17,6 +17,8 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Options;
+using Interfracture.MessageBroker;
 
 namespace TheCoffeeHand
 {
@@ -33,7 +35,7 @@ namespace TheCoffeeHand
         public static void AddApplication(this IServiceCollection services, IConfiguration configuration)
         {
             services.AddRepositoryLayer();
-            services.AddServiceLayer();
+            services.AddServiceLayer(configuration);
             services.AddAutoMapper(typeof(Services.DependencyInjection).Assembly);
 
             // Add DbContext with SQLite
@@ -93,6 +95,7 @@ namespace TheCoffeeHand
                     cloudinarySettings.ApiSecret
                 ));
             });
+
         }
 
         /// <summary>
