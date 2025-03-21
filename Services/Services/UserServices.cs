@@ -134,6 +134,57 @@ namespace Services.Services
             return cachedUser;
         }
 
+        public async Task<UserDTO> UpdateUser(Guid id, UserRequestDTO userDto)
+        {
+            var updateUser = await _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(id);
+
+            if (updateUser == null)
+                throw new BaseException.NotFoundException("user_not_found", $"User with ID {id} not found.");
+
+            // ✅ Update user properties only if they have values
+            if (!string.IsNullOrWhiteSpace(userDto.FirstName))
+                updateUser.FirstName = userDto.FirstName;
+
+            if (!string.IsNullOrWhiteSpace(userDto.LastName))
+                updateUser.LastName = userDto.LastName;
+
+            if (!string.IsNullOrWhiteSpace(userDto.Email))
+                updateUser.Email = userDto.Email;
+
+            if (!string.IsNullOrWhiteSpace(userDto.PhoneNumber))
+                updateUser.PhoneNumber = userDto.PhoneNumber;
+
+            if (!string.IsNullOrWhiteSpace(userDto.FcmToken))
+                updateUser.FcmToken = userDto.FcmToken;
+
+            // ✅ Fetch current roles
+            var currentRoles = await _userManager.GetRolesAsync(updateUser);
+            var newRoles = userDto.Roles;
+
+            // ✅ Update roles only if changed and not empty
+            if (newRoles != null && newRoles.Any() && !currentRoles.SequenceEqual(newRoles))
+            {
+                await _userManager.RemoveFromRolesAsync(updateUser, currentRoles);
+                await _userManager.AddToRolesAsync(updateUser, newRoles);
+            }
+
+
+            // ✅ Save changes
+            _unitOfWork.GetRepository<ApplicationUser>().Update(updateUser);
+            await _unitOfWork.SaveAsync();
+
+            // ✅ Return updated user
+            return new UserDTO
+            {
+                Id = updateUser.Id.ToString(),
+                FirstName = updateUser.FirstName,
+                LastName = updateUser.LastName,
+                Email = updateUser.Email ?? "",
+                PhoneNumber = updateUser.PhoneNumber ?? "",
+                FcmToken = updateUser.FcmToken,
+                Roles = (await _userManager.GetRolesAsync(updateUser)).ToList() // Ensure latest roles are returned
+            };
+        }
 
         public string? GetCurrentUserId()
         {

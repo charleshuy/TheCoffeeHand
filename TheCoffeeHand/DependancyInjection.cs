@@ -40,7 +40,7 @@ namespace TheCoffeeHand
 
             // Add DbContext with SQLite
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlite(configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
             // Add Identity
             services.AddIdentity<ApplicationUser, ApplicationRole>()
