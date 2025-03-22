@@ -92,7 +92,8 @@ namespace Repositories.Seeds
                 context.Drinks.AddRange(
                     new Drink { Name = "Espresso", Price = 2.50, CategoryId = coffeeCategory.Id, isAvailable = true },
                     new Drink { Name = "Latte", Price = 3.50, CategoryId = coffeeCategory.Id, isAvailable = true },
-                    new Drink { Name = "Green Tea", Price = 2.00, CategoryId = teaCategory.Id, isAvailable = true }
+                    new Drink { Name = "Green Tea", Price = 2.00, CategoryId = teaCategory.Id, isAvailable = true },
+                    new Drink { Name = "Milk Coffee", Price = 2.00, CategoryId = coffeeCategory.Id, isAvailable = true }
                 );
                 await context.SaveChangesAsync();
             }
@@ -133,7 +134,9 @@ namespace Repositories.Seeds
                     new Ingredient { Name = "Sugar", Quantity = 500 },
                     new Ingredient { Name = "Tea Leaves", Quantity = 300 },
                     new Ingredient { Name = "Cocoa Powder", Quantity = 200 },
-                    new Ingredient { Name = "Vanilla Syrup", Quantity = 150 }
+                    new Ingredient { Name = "Vanilla Syrup", Quantity = 150 },
+                    new Ingredient { Name = "Ice", Quantity = 150 },
+                    new Ingredient { Name = "Water", Quantity = 150000 }
                 );
                 await context.SaveChangesAsync();
             }

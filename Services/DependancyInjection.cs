@@ -49,16 +49,13 @@ namespace Services {
             //});
 
             var rabbitConfig = configuration.GetSection("RabbitMQ");
-            var factory = new ConnectionFactory() {
-                HostName = rabbitConfig["HostName"],
-                UserName = rabbitConfig["UserName"],
-                Password = rabbitConfig["Password"],
-                VirtualHost = rabbitConfig["VirtualHost"],
-                Port = int.Parse(rabbitConfig["Port"])
+            var factory = new ConnectionFactory()
+            {
+                Uri = new Uri(rabbitConfig["ConnectionString"])
             };
 
-            //services.AddSingleton(sp => sp.GetRequiredService<ConnectionFactory>().CreateConnectionAsync());
             services.AddSingleton(factory);
+
             services.AddSingleton<IRabbitMQService, RabbitMQService>();
             services.AddHostedService<RabbitMQConsumerService>();
         }
