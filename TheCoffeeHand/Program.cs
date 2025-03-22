@@ -25,6 +25,14 @@ namespace TheCoffeeHand {
                 });
             });
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowVercel",
+                    policy => policy.WithOrigins("https://the-coffee-hand-fe.vercel.app")
+                                    .AllowAnyHeader()
+                                    .AllowAnyMethod());
+            });
+
             var app = builder.Build();
 
             // Seed data
@@ -47,6 +55,8 @@ namespace TheCoffeeHand {
             app.UseHttpsRedirection();
 
             app.UseCors("AllowLocalhost3000");
+            app.UseCors("AllowVercel");
+
 
             app.UseMiddleware<ExceptionMiddleware>();
 
