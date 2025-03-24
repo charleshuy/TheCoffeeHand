@@ -396,7 +396,6 @@ namespace Services.Services
                 UserId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
                 Drinks = new[] {
                     new { DrinkId = Guid.Parse("13A27675-CC46-4DDC-ABA5-E1A5151475C7"), DrinkName = "Milk Coffee", Quantity = 1 },
-                    new { DrinkId = Guid.Parse("DC52C1D4-10BE-4A00-AD67-F92BB916D998"), DrinkName = "Espresso", Quantity = 1 }
                 }
             };
 

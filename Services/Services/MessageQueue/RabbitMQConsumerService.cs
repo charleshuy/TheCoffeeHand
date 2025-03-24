@@ -1,5 +1,6 @@
 ﻿using CloudinaryDotNet.Core;
 using Domain.Entities;
+using FirebaseAdmin.Messaging;
 using Interfracture.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -12,6 +13,7 @@ using RabbitMQ.Client.Events;
 using Services.ServiceInterfaces;
 using Services.Services.MessageQueue;
 using System;
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -77,6 +79,8 @@ namespace Services.Services {
                     var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
                     foreach (var drink in orderMessage.Drinks) {
                         var ingredientDetails = await GetDrinkDetailFromDatabaseAsync(drink.DrinkId, unitOfWork);
+                        //string jsonMessage = JsonConvert.SerializeObject(ingredientDetails, Formatting.Indented);
+                        //_logger.LogInformation($" [x] Ingredient: {jsonMessage}");
 
                         for (int i = 0; i < drink.Quantity; i++) {
                             var actions = new List<dynamic>();
@@ -189,11 +193,12 @@ namespace Services.Services {
                                         break;
                                 }
                             }
+                            Debug.WriteLine($" [x] Actions: {actions}");
 
                             var machineMessage = new {
                                 activity_id = $"machine_{drink.DrinkId}_{orderMessage.OrderId}_{i + 1}",
-                                name = $"Pha {drink.DrinkName}",
-                                description = $"Các bước để pha {drink.DrinkName} theo công thức.",
+                                name = $"Make {drink.DrinkName}",
+                                description = $"Make {drink.DrinkName} follow recipe.",
                                 actions = actions
                             };
 
