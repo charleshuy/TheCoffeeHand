@@ -68,22 +68,23 @@ namespace TheCoffeeHand.Controllers
         }
 
         /// <summary>
-        /// Retrieves paginated orders, optionally filtered by user and date.
+        /// Retrieves paginated orders, optionally filtered by user and dateStart.
         /// </summary>
         /// <param name="userId">Optional user ID filter.</param>
-        /// <param name="date">Optional date filter.</param>
+        /// <param name="dateStart">Optional dateStart filter.</param>
+        /// <param name="dateEnd">Optional dateEnd filter.</param>
         /// <param name="pageNumber">Page number (default: 1).</param>
         /// <param name="pageSize">Page size (default: 10).</param>
         /// <returns>Paginated list of orders.</returns>
         /// <response code="200">Returns the list of orders.</response>
         /// <response code="400">If pageNumber or pageSize is invalid.</response>
         [HttpGet("paginated")]
-        public async Task<IActionResult> GetOrders(Guid? userId, [FromQuery] DateTimeOffset? date, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        public async Task<IActionResult> GetOrders(Guid? userId, [FromQuery] DateTimeOffset? dateStart, [FromQuery] DateTimeOffset? dateEnd, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
         {
             if (pageNumber <= 0 || pageSize <= 0)
                 return BadRequest("Page number and page size must be greater than zero.");
 
-            var paginatedOrders = await _orderService.GetOrdersAsync(pageNumber, pageSize, userId, date);
+            var paginatedOrders = await _orderService.GetOrdersAsync(pageNumber, pageSize, userId, dateStart, dateEnd);
             return Ok(paginatedOrders);
         }
 

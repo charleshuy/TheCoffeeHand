@@ -7,7 +7,7 @@ namespace Services.ServiceInterfaces
     {
         Task<OrderResponseDTO> CreateOrderAsync(OrderRequestDTO orderDTO);
         Task<OrderResponseDTO> GetOrderByIdAsync(Guid id);
-        Task<PaginatedList<OrderResponseDTO>> GetOrdersAsync(int pageNumber, int pageSize, Guid? userId, DateTimeOffset? date);
+        Task<PaginatedList<OrderResponseDTO>> GetOrdersAsync(int pageNumber, int pageSize, Guid? userId, DateTimeOffset? dateStart, DateTimeOffset? dateEnd);
         Task<OrderResponseDTO> UpdateOrderAsync(Guid id, OrderRequestDTO orderDTO);
         Task DeleteOrderAsync(Guid id);
         Task<OrderResponseDTO> GetCartAsync();

@@ -50,5 +50,16 @@ namespace Services.Services.RedisCache
             }
         }
 
+        // New method to clear all cache
+        public async Task ClearAllCacheAsync()
+        {
+            var server = _redis.GetServer(_redis.GetEndPoints().First());
+            var keys = server.Keys().ToArray(); // Get all keys
+
+            if (keys.Length > 0)
+            {
+                await _db.KeyDeleteAsync(keys); // Delete all keys
+            }
+        }
     }
 }
