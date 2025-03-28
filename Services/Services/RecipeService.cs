@@ -30,7 +30,7 @@ namespace Services.Services
 
             // Clear cache when data changes
             await _cacheService.RemoveByPrefixAsync("recipes_");
-
+            await _cacheService.ClearAllCacheAsync();
             return _mapper.Map<RecipeResponseDTO>(recipe);
         }
 
@@ -111,6 +111,7 @@ namespace Services.Services
             // Clear related caches
             await _cacheService.RemoveAsync($"recipe_{id}");
             await _cacheService.RemoveByPrefixAsync("recipes_");
+            await _cacheService.ClearAllCacheAsync();
 
             return _mapper.Map<RecipeResponseDTO>(recipe);
         }
@@ -127,6 +128,7 @@ namespace Services.Services
             // Clear related caches
             await _cacheService.RemoveAsync($"recipe_{id}");
             await _cacheService.RemoveByPrefixAsync("recipes_");
+            await _cacheService.ClearAllCacheAsync();
         }
     }
 }

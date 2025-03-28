@@ -43,6 +43,40 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Registers a new user using email and password.
+    /// </summary>
+    /// <param name="request">The registration request containing email and password.</param>
+    /// <returns>A success message if registration is successful.</returns>
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] EmailLoginRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+        {
+            return BadRequest(new { message = "Email and password are required." });
+        }
+
+        await _firebaseAuthService.RegisterWithEmailPasswordFireBaseAsync(request.Email, request.Password);
+        return Ok(new { message = "Registration successful. Please verify your email." });
+    }
+
+    /// <summary>
+    /// Logs in a user using email and password with Firebase authentication.
+    /// </summary>
+    /// <param name="request">The login request containing email and password.</param>
+    /// <returns>A JWT token if authentication is successful.</returns>
+    [HttpPost("email-login-firebase")]
+    public async Task<IActionResult> EmailLoginFirebase([FromBody] EmailLoginRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+        {
+            return BadRequest(new { message = "Email and password are required." });
+        }
+
+        var jwtToken = await _firebaseAuthService.SignInWithEmailAndPasswordFirebaseAsync(request.Email, request.Password);
+        return Ok(new { token = jwtToken });
+    }
+
+    /// <summary>
     /// Logs in a user using email and password.
     /// </summary>
     /// <param name="request">The login request containing email and password.</param>
@@ -125,4 +159,18 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = "Invalid or expired token" });
         }
     }
+
+    /// <summary>
+    /// Deletes a user by their ID.
+    /// </summary>
+    /// <param name="id">The ID of the user to delete.</param>
+    /// <returns>A success message if deletion is successful.</returns>
+    [HttpDelete("delete/{id}")]
+    //[Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
+    public async Task<IActionResult> DeleteUser(Guid id)
+    {
+        await _userService.DeleteUserAsync(id);
+        return Ok(new { message = $"User with ID {id} has been deleted successfully." });
+    }
+
 }

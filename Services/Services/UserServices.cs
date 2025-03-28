@@ -172,7 +172,7 @@ namespace Services.Services
             // ✅ Save changes
             _unitOfWork.GetRepository<ApplicationUser>().Update(updateUser);
             await _unitOfWork.SaveAsync();
-
+            await _cacheService.ClearAllCacheAsync();
             // ✅ Return updated user
             return new UserDTO
             {
@@ -192,6 +192,30 @@ namespace Services.Services
             if (user == null) throw new BaseException.UnauthorizedException("unauthenticated", "Require authentication"); ;
             return user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
+
+        public async Task DeleteUserAsync(Guid id)
+        {
+            var user = await _unitOfWork.GetRepository<ApplicationUser>().GetByIdAsync(id);
+
+            if (user == null)
+                throw new BaseException.NotFoundException("user_not_found", $"User with ID {id} not found.");
+
+            // Remove user roles
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Any())
+            {
+                await _userManager.RemoveFromRolesAsync(user, roles);
+            }
+
+            // Delete user
+            _unitOfWork.GetRepository<ApplicationUser>().Delete(user);
+            await _unitOfWork.SaveAsync();
+
+            // Clear Cache
+            await _cacheService.RemoveAsync($"user_{user.Id}");
+            await _cacheService.RemoveByPrefixAsync("users_");
+        }
+
 
         public async Task RemoveUserCacheAsync(string userId)
         {

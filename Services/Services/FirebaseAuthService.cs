@@ -100,6 +100,136 @@ namespace Services.Services
             return await GenerateJwtToken(user, _userManager);
         }
 
+        public async Task<string> SignInWithEmailAndPasswordFirebaseAsync(string email, string password)
+        {
+            var apiKey = _configuration["Firebase:ApiKey"];
+            var signInUrl = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={apiKey}";
+
+            var payload = new
+            {
+                email = email,
+                password = password,
+                returnSecureToken = true
+            };
+
+            var httpClient = new HttpClient();
+            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync(signInUrl, content);
+
+            if (!response.IsSuccessStatusCode)
+                throw new BaseException.UnauthorizedException("invalid_credentials", "Invalid email or password.");
+
+            var responseData = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var idToken = responseData.RootElement.GetProperty("idToken").GetString();
+
+            // ✅ Verify email
+            var isVerified = await IsEmailVerifiedAsync(idToken);
+            if (!isVerified)
+                throw new BaseException.UnauthorizedException("email_not_verified", "Email is not verified. Please verify your email.");
+
+            // ✅ Find user
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                throw new BaseException.NotFoundException("user_not_found", "User not found.");
+
+            var passwordValid = await _userManager.CheckPasswordAsync(user, password);
+            if (!passwordValid)
+                throw new BaseException.UnauthorizedException("invalid_credentials", "Invalid email or password.");
+
+            return await GenerateJwtToken(user, _userManager);
+        }
+
+        private async Task<bool> IsEmailVerifiedAsync(string idToken)
+        {
+            var apiKey = _configuration["Firebase:ApiKey"];
+            var accountInfoUrl = $"https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={apiKey}";
+
+            var payload = new { idToken };
+            var httpClient = new HttpClient();
+            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync(accountInfoUrl, content);
+
+            if (!response.IsSuccessStatusCode)
+                throw new BaseException.CoreException("firebase_error", "Failed to retrieve account information.");
+
+            var responseData = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var users = responseData.RootElement.GetProperty("users");
+
+            if (users.GetArrayLength() == 0)
+                return false;
+
+            return users[0].GetProperty("emailVerified").GetBoolean();
+        }
+
+
+        public async Task RegisterWithEmailPasswordFireBaseAsync(string email, string password)
+        {
+            var apiKey = _configuration["Firebase:ApiKey"];
+            var signUpUrl = $"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={apiKey}";
+
+            var payload = new
+            {
+                email = email,
+                password = password,
+                returnSecureToken = true
+            };
+
+            var httpClient = new HttpClient();
+            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync(signUpUrl, content);
+
+            if (!response.IsSuccessStatusCode)
+                throw new BaseException.BadRequestException("registration_failed", "Failed to register user. Please try again.");
+
+            var responseData = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var idToken = responseData.RootElement.GetProperty("idToken").GetString();
+
+            // ✅ Send email verification
+            await SendEmailVerificationAsync(idToken);
+
+            // ✅ Create user in Identity
+            var existingUser = await _userManager.FindByEmailAsync(email);
+            if (existingUser != null)
+                throw new BaseException.BadRequestException("user_exists", "User already exists.");
+
+            var newUser = new ApplicationUser
+            {
+                UserName = email.Split('@')[0],
+                Email = email,
+                FirstName = "",
+                LastName = ""
+            };
+
+            var result = await _userManager.CreateAsync(newUser, password);
+            if (!result.Succeeded)
+            {
+                throw new BaseException.BadRequestException("create_user_failed",
+                    $"Failed to create user: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+            }
+
+            await _userManager.AddToRoleAsync(newUser, "User");
+        }
+
+        private async Task SendEmailVerificationAsync(string idToken)
+        {
+            var apiKey = _configuration["Firebase:ApiKey"];
+            var verificationUrl = $"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={apiKey}";
+
+            var payload = new
+            {
+                requestType = "VERIFY_EMAIL",
+                idToken = idToken
+            };
+
+            var httpClient = new HttpClient();
+            var content = new StringContent(System.Text.Json.JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync(verificationUrl, content);
+
+            if (!response.IsSuccessStatusCode)
+                throw new BaseException.CoreException("email_verification_failed", "Failed to send verification email.");
+        }
+
+
         private async Task<string> GenerateJwtToken(ApplicationUser user, UserManager<ApplicationUser> userManager)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? throw new BaseException.NotFoundException("not_found", "Jwt key not found")));

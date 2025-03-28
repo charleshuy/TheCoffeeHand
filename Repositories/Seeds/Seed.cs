@@ -104,26 +104,41 @@ namespace Repositories.Seeds
             if (!context.Orders.Any())
             {
                 var adminUser = await userManager.FindByEmailAsync("admin@thecoffeehand.com");
-                var espresso = context.Drinks.First(d => d.Name == "Espresso");
-                var latte = context.Drinks.First(d => d.Name == "Latte");
+                var drinks = context.Drinks.ToList();
 
-                var order = new Order
+                var random = new Random();
+                var orders = new List<Order>();
+
+                for (int i = 0; i < 5; i++)
                 {
-                    Date = DateTimeOffset.Now,
-                    Status = EnumOrderStatus.Done,
-                    TotalPrice = 6.00, // Espresso + Latte
-                    UserId = adminUser.Id,
-                    OrderDetails = new List<OrderDetail>
-                    {
-                        new OrderDetail { DrinkId = espresso.Id, Total = 1, Note = "No sugar" },
-                        new OrderDetail { DrinkId = latte.Id, Total = 1, Note = "Extra milk" }
-                    }
-                };
+                    var orderDate = new DateTimeOffset(DateTime.Now.Year, DateTime.Now.Month, random.Next(1, DateTime.DaysInMonth(DateTime.Now.Year, DateTime.Now.Month) + 1),
+                                                       random.Next(7, 20), random.Next(0, 60), 0, TimeSpan.Zero);
 
-                context.Orders.Add(order);
+                    var selectedDrinks = drinks.OrderBy(x => random.Next()).Take(2).ToList();
+                    double totalPrice = selectedDrinks.Sum(d => d.Price);
+
+                    var orderDetails = selectedDrinks.Select(d => new OrderDetail
+                    {
+                        DrinkId = d.Id,
+                        Total = 1,
+                        Note = "Random order"
+                    }).ToList();
+
+                    orders.Add(new Order
+                    {
+                        Date = orderDate,
+                        Status = EnumOrderStatus.Done,
+                        TotalPrice = totalPrice,
+                        UserId = adminUser.Id,
+                        OrderDetails = orderDetails
+                    });
+                }
+
+                context.Orders.AddRange(orders);
                 await context.SaveChangesAsync();
             }
         }
+
         private static async Task SeedIngredients(ApplicationDbContext context)
         {
             if (!context.Ingredients.Any()) // Prevent duplicate seeding

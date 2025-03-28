@@ -37,7 +37,7 @@ namespace Services.Services
 
             // Clear cache when data changes
             await _cacheService.RemoveByPrefixAsync("drinks_");
-
+            await _cacheService.ClearAllCacheAsync();
             var result = await GetDrinkByIdAsync(drink.Id);
 
             return _mapper.Map<DrinkResponseDTO>(result);
