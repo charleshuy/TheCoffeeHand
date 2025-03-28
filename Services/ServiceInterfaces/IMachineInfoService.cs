@@ -9,5 +9,6 @@ namespace Services.ServiceInterfaces {
         Task<Machine?> GetMachineByIdAsync(string machineId);
         Task<List<DrinkRecipe>> GetAllRecipesAsync();
         Task<DrinkRecipe?> GetRecipeByIdAsync(string recipeId);
+        Task<bool> CreateDrinkRecipeAsync(DrinkRecipe newRecipe, Guid drinkId);
     }
 }

@@ -10,5 +10,6 @@ namespace Services.ServiceInterfaces
         Task<PaginatedList<IngredientResponseDTO>> GetIngredientsAsync(int pageNumber, int pageSize);
         Task<IngredientResponseDTO> UpdateIngredientAsync(Guid id, IngredientResponseDTO ingredientDTO);
         Task DeleteIngredientAsync(Guid id);
+        Task<IngredientResponseDTO> GetIngredientByNameAsync(string name);
     }
 }
