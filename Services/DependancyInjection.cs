@@ -58,6 +58,8 @@ namespace Services {
 
             services.AddSingleton<IRabbitMQService, RabbitMQService>();
             services.AddHostedService<RabbitMQConsumerService>();
+            services.AddScoped<IMachineInfoService, MachineInfoService>();
+
         }
     }
 }

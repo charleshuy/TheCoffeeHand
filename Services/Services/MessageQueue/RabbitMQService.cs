@@ -35,7 +35,7 @@ namespace Services.Services {
                                      basicProperties: properties,
                                      body: body);
 
-                _logger.LogInformation($" [x] Sent message to {queueName}: {message}");
+                //_logger.LogInformation($" [x] Sent message to {queueName}: {message}");
             } catch (Exception ex) {
                 _logger.LogError($"Error sending message to {queueName}: {ex.Message}");
             }

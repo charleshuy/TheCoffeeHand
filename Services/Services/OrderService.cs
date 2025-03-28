@@ -402,9 +402,9 @@ namespace Services.Services
             // Tạo dữ liệu giả cho order gồm 1 Milk Coffee và 1 Espresso
             var fakeOrderMessage = new {
                 OrderId = Guid.Parse("11111111-2222-3333-4444-555555555555"),
-                UserId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+                UserId = Guid.Parse("085d4d09-aa03-481d-a8f8-7bd5044ca124"),
                 Drinks = new[] {
-                    new { DrinkId = Guid.Parse("13A27675-CC46-4DDC-ABA5-E1A5151475C7"), DrinkName = "Milk Coffee", Quantity = 1 },
+                    new { DrinkId = Guid.Parse("085d4d09-aa03-481d-a8f8-7bd5044ca124"), DrinkName = "Milk Coffee", Quantity = 1 },
                 }
             };
 
@@ -412,6 +412,32 @@ namespace Services.Services
             string jsonMessage = JsonConvert.SerializeObject(fakeOrderMessage, Formatting.Indented);
 
             await _rabbitMQService.SendMessageAsync("test_queue", jsonMessage);
+        }
+
+        public async Task CompleteOrderAsync(Guid orderId) {
+            var orderRepository = _unitOfWork.GetRepository<Order>();
+
+            if (orderId.Equals("11111111-2222-3333-4444-555555555555")) {
+                await _unitOfWork.SaveAsync();
+            } else {
+
+                var order = await orderRepository.GetByIdAsync(orderId);
+
+                if (order == null)
+                    throw new BaseException.NotFoundException("not_found", "Order not found");
+
+                if (order.Status != EnumOrderStatus.Confirmed)
+                    throw new BaseException.BadRequestException("invalid_status", "Order must be confirmed before it can be marked as done");
+
+                order.Status = EnumOrderStatus.Done;
+                orderRepository.Update(order);
+
+                await _unitOfWork.SaveAsync();
+
+                await _cacheService.RemoveAsync($"order_{orderId}");
+                await _cacheService.RemoveByPrefixAsync("orders_");
+            }
+
         }
     }
 }

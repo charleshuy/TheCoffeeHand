@@ -151,7 +151,18 @@ namespace TheCoffeeHand.Controllers
         public async Task<IActionResult> SendOrderMessage() {
             await _orderService.TestSendMessage();
 
-            return Ok("grasp");
+            return Ok("grasped");
         }
+
+        /// <summary>
+        /// Completes an order by setting status to Done.
+        /// </summary>
+        /// <param name="id">The order ID.</param>
+        [HttpPost("{id}/complete")]
+        public async Task<IActionResult> CompleteOrder(Guid id) {
+            await _orderService.CompleteOrderAsync(id);
+            return Ok("Order completed successfully.");
+        }
+
     }
 }

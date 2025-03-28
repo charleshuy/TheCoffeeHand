@@ -14,5 +14,6 @@ namespace Services.ServiceInterfaces
         Task ConfirmOrderAsync(Guid orderId);
         Task CancelOrderAsync(Guid orderId);
         Task TestSendMessage();
+        Task CompleteOrderAsync(Guid orderId);
     }
 }
