@@ -32,11 +32,26 @@ namespace Services.Services {
             return recipes;
         }
 
-        public async Task<DrinkRecipe?> GetRecipeByIdAsync(string recipeId) {
-            var recipeCollection = _mongoDbUnitOfWork.GetCollection<DrinkRecipe>("recipe");
-            var filter = Builders<DrinkRecipe>.Filter.Eq(r => r.Id, recipeId);
-            var recipe = await recipeCollection.Find(filter).FirstOrDefaultAsync();
-            return recipe;
+        public async Task<bool> CreateDrinkRecipeAsync(DrinkRecipe newRecipe, Guid drinkId) {
+            try {
+                var recipeCollection = _mongoDbUnitOfWork.GetCollection<DrinkRecipe>("recipe");
+
+                // Tạo ID mới nếu chưa có
+                //if (string.IsNullOrEmpty(newRecipe.Id)) {
+                //    newRecipe.Id = $"recipe_{drinkId}";
+                //}
+
+                // Thêm công thức mới vào MongoDB
+                await recipeCollection.InsertOneAsync(newRecipe);
+                return true;
+            } catch (Exception ex) {
+                Console.WriteLine($"[ERROR] Failed to create recipe: {ex.Message}");
+                return false;
+            }
+        }
+
+        public Task<DrinkRecipe?> GetRecipeByIdAsync(string recipeId) {
+            throw new NotImplementedException();
         }
     }
 }

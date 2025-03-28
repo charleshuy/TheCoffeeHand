@@ -95,5 +95,18 @@ namespace TheCoffeeHand.Controllers
             await _ingredientService.DeleteIngredientAsync(id);
             return NoContent();
         }
+
+        /// <summary>
+        /// Retrieves an ingredient by its Name.
+        /// </summary>
+        /// <param name="name">The name of the ingredient.</param>
+        /// <returns>Returns the ingredient if found, otherwise NotFound.</returns>
+        [HttpGet("by-name")]
+        public async Task<IActionResult> GetIngredientByName([FromQuery] string name) {
+            var ingredient = await _ingredientService.GetIngredientByNameAsync(name);
+            if (ingredient == null)
+                return NotFound(new { message = "Ingredient not found." });
+            return Ok(ingredient);
+        }
     }
 }

@@ -145,5 +145,29 @@ namespace Services.Services
             await _cacheService.RemoveAsync($"ingredient_{id}");
             await _cacheService.RemoveByPrefixAsync("ingredients_");
         }
+
+        public async Task<IngredientResponseDTO> GetIngredientByNameAsync(string name) {
+            string cacheKey = $"ingredient_name_{name.ToLower()}";
+
+            // Try to get from cache
+            var cachedIngredient = await _cacheService.GetAsync<IngredientResponseDTO>(cacheKey);
+            if (cachedIngredient != null) {
+                return cachedIngredient;
+            }
+
+            var ingredient = await _unitOfWork.GetRepository<Ingredient>().Entities
+                .FirstOrDefaultAsync(i => i.Name.ToLower() == name.ToLower() && i.DeletedTime == null);
+
+            if (ingredient == null) {
+                throw new NotFoundException("not_found", "Ingredient not found");
+            }
+
+            var ingredientDTO = _mapper.Map<IngredientResponseDTO>(ingredient);
+
+            // Store in cache
+            await _cacheService.SetAsync(cacheKey, ingredientDTO, TimeSpan.FromMinutes(30));
+
+            return ingredientDTO;
+        }
     }
 }
