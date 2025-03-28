@@ -56,7 +56,7 @@ namespace Services.Services {
                 consumer.ReceivedAsync += async (model, ea) => {
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
-                    _logger.LogInformation($" [x] Received: {message}");
+                    //_logger.LogInformation($" [x] Received: {message}");
 
                     try {
                         await ProcessMessageAsync(message);
@@ -99,12 +99,11 @@ namespace Services.Services {
                             var actions = new List<dynamic>();
                             int sequence = 1;
 
-                            foreach (var step in recipe.Recipe) {
+                            foreach (var step in recipe.RecipeSteps) {
 
                                 var machineCollection = mongoDbUnitOfWork.GetCollection<Machine>("machine-info");
                                 Machine machine = await machineCollection.Find(x => x.MachineName == step.MachineName).FirstAsync();
 
-                                _logger.LogInformation($"MACHINE: {machine}");
 
                                 if (machine == null) {
                                     _logger.LogWarning($"No machine found");
@@ -146,7 +145,7 @@ namespace Services.Services {
                             var machineMessage = new {
                                 activity_id = $"MK_{drink.DrinkId}_{orderMessage.OrderId}",
                                 name = $"Make {drink.DrinkName}",
-                                description = $"Make {drink.DrinkName} follow recipe",
+                                description = $"Make {drink.DrinkName} follow recipe.",
                                 actions = actions,
                             };
 
@@ -202,9 +201,11 @@ namespace Services.Services {
             return ingredientDetails;
         }
 
-        private async Task<List<DrinkRecipes>> GetDrinkRecipeFromDatabaseAsync(Guid drinkId, IMongoDbUnitOfWork mongoDbUnitOfWork) {
+        private async Task<List<DrinkRecipe>> GetDrinkRecipeFromDatabaseAsync(Guid drinkId, IMongoDbUnitOfWork mongoDbUnitOfWork) {
 
-            var recipesCollection = mongoDbUnitOfWork.GetCollection<DrinkRecipes>("recipe");
+            var recipesCollection = mongoDbUnitOfWork.GetCollection<DrinkRecipe>("recipe");
+
+            _logger.LogInformation($" [x] DRINK: {drinkId}");
 
             string recipeId = $"recipe_{drinkId}";
 
@@ -212,7 +213,7 @@ namespace Services.Services {
 
             if (recipe == null || recipe.Count == 0) {
                 _logger.LogWarning($"No recipe found for DrinkId: {drinkId}");
-                return new List<DrinkRecipes>();
+                return new List<DrinkRecipe>();
             }
 
             _logger.LogInformation($"Recipe found for DrinkId: {drinkId}, Name: {recipe.First().DrinkName}");

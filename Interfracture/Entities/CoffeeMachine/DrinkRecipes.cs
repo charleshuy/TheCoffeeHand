@@ -2,8 +2,8 @@
 using MongoDB.Bson.Serialization.Attributes;
 using System.Collections.Generic;
 
-namespace Domain.Entities.CoffeeMachine {
-    public class DrinkRecipes {
+namespace Domain.Entities {
+    public class DrinkRecipe {
         [BsonId]
         [BsonRepresentation(BsonType.String)]
         public string Id { get; set; } = string.Empty;
@@ -12,12 +12,13 @@ namespace Domain.Entities.CoffeeMachine {
         public string DrinkName { get; set; } = string.Empty;
 
         [BsonElement("recipe")]
-        public List<RecipeStep> Recipe { get; set; } = new List<RecipeStep>();
+        public List<RecipeStep> RecipeSteps { get; set; } = new();
     }
 
     public class RecipeStep {
         [BsonElement("ingredient")]
         public string Ingredient { get; set; } = string.Empty;
+
         [BsonElement("machine_name")]
         public string MachineName { get; set; } = string.Empty;
 
@@ -25,7 +26,7 @@ namespace Domain.Entities.CoffeeMachine {
         public string Action { get; set; } = string.Empty;
 
         [BsonElement("parameters_required")]
-        public List<Parameter> ParametersRequired { get; set; } = new List<Parameter>();
+        public List<Parameter> ParametersRequired { get; set; } = new();
     }
 
     public class Parameter {
@@ -33,6 +34,6 @@ namespace Domain.Entities.CoffeeMachine {
         public string Name { get; set; } = string.Empty;
 
         [BsonElement("value")]
-        public double Value { get; set; } = 0;
+        public double Value { get; set; }
     }
 }

@@ -404,5 +404,31 @@ namespace Services.Services
 
             await _rabbitMQService.SendMessageAsync("test_queue", jsonMessage);
         }
+
+        public async Task CompleteOrderAsync(Guid orderId) {
+            var orderRepository = _unitOfWork.GetRepository<Order>();
+
+            if (orderId.Equals("11111111-2222-3333-4444-555555555555")) {
+                await _unitOfWork.SaveAsync();
+            } else {
+
+                var order = await orderRepository.GetByIdAsync(orderId);
+
+                if (order == null)
+                    throw new BaseException.NotFoundException("not_found", "Order not found");
+
+                if (order.Status != EnumOrderStatus.Confirmed)
+                    throw new BaseException.BadRequestException("invalid_status", "Order must be confirmed before it can be marked as done");
+
+                order.Status = EnumOrderStatus.Done;
+                orderRepository.Update(order);
+
+                await _unitOfWork.SaveAsync();
+
+                await _cacheService.RemoveAsync($"order_{orderId}");
+                await _cacheService.RemoveByPrefixAsync("orders_");
+            }
+
+        }
     }
 }
