@@ -393,9 +393,9 @@ namespace Services.Services
             // Tạo dữ liệu giả cho order gồm 1 Milk Coffee và 1 Espresso
             var fakeOrderMessage = new {
                 OrderId = Guid.Parse("11111111-2222-3333-4444-555555555555"),
-                UserId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+                UserId = Guid.Parse("085d4d09-aa03-481d-a8f8-7bd5044ca124"),
                 Drinks = new[] {
-                    new { DrinkId = Guid.Parse("13A27675-CC46-4DDC-ABA5-E1A5151475C7"), DrinkName = "Milk Coffee", Quantity = 1 },
+                    new { DrinkId = Guid.Parse("085d4d09-aa03-481d-a8f8-7bd5044ca124"), DrinkName = "Milk Coffee", Quantity = 1 },
                 }
             };
 

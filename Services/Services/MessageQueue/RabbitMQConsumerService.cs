@@ -1,5 +1,7 @@
 ﻿using CloudinaryDotNet.Core;
+using Core.Utils;
 using Domain.Entities;
+using Domain.Entities.CoffeeMachine;
 using FirebaseAdmin.Messaging;
 using Interfracture.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +9,9 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -72,140 +77,81 @@ namespace Services.Services {
         }
 
         public async Task ProcessMessageAsync(string message) {
-
             var orderMessage = JsonConvert.DeserializeObject<OrderMessage>(message);
+
             try {
                 using (var scope = _serviceProvider.CreateScope()) {
                     var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
+                    var mongoDbUnitOfWork = scope.ServiceProvider.GetRequiredService<IMongoDbUnitOfWork>();
+
                     foreach (var drink in orderMessage.Drinks) {
                         var ingredientDetails = await GetDrinkDetailFromDatabaseAsync(drink.DrinkId, unitOfWork);
-                        //string jsonMessage = JsonConvert.SerializeObject(ingredientDetails, Formatting.Indented);
-                        //_logger.LogInformation($" [x] Ingredient: {jsonMessage}");
+                        var recipeList = await GetDrinkRecipeFromDatabaseAsync(drink.DrinkId, mongoDbUnitOfWork);
+
+                        if (!recipeList.Any()) {
+                            _logger.LogWarning($"No recipe found for DrinkId: {drink.DrinkId}");
+                            continue;
+                        }
+
+                        var recipe = recipeList.First();
 
                         for (int i = 0; i < drink.Quantity; i++) {
                             var actions = new List<dynamic>();
                             int sequence = 1;
 
-                            foreach (var ingredient in ingredientDetails) {
-                                string ingName = ingredient.IngredientName.ToString().ToLower();
+                            foreach (var step in recipe.Recipe) {
 
-                                switch (ingName) {
-                                    case string s when s.Contains("coffee beans"):
-                                        actions.Add(new {
-                                            action_id = "grind_coffee_beans",
-                                            device = "coffee_grinder",
-                                            type = "grinding",
-                                            parameters = new {
-                                                ingredient = ingredient.IngredientName,
-                                                required_quantity = ingredient.RequiredQuantity
-                                            },
-                                            sequence = sequence++
-                                        });
+                                var machineCollection = mongoDbUnitOfWork.GetCollection<Machine>("machine-info");
+                                Machine machine = await machineCollection.Find(x => x.MachineName == step.MachineName).FirstAsync();
 
-                                        actions.Add(new {
-                                            action_id = "brew_coffee",
-                                            device = "coffee_machine",
-                                            type = "brewing",
-                                            parameters = new {
-                                                drink = drink.DrinkName,
-                                                ingredient = ingredient.IngredientName
-                                            },
-                                            sequence = sequence++
-                                        });
-                                        break;
+                                _logger.LogInformation($"MACHINE: {machine}");
 
-                                    case string s when s.Contains("milk"):
-
-                                        actions.Add(new {
-                                            action_id = "heat_milk",
-                                            device = "milk_heater",
-                                            type = "heating",
-                                            parameters = new {
-                                                ingredient = ingredient.IngredientName,
-                                                required_quantity = ingredient.RequiredQuantity,
-                                            },
-                                            sequence = sequence++
-                                        });
-
-                                        actions.Add(new {
-                                            action_id = "brew_milk",
-                                            device = "milk_machine",
-                                            type = "brewing",
-                                            parameters = new {
-                                                drink = drink.DrinkName,
-                                                ingredient = ingredient.IngredientName
-                                            },
-                                            sequence = sequence++
-                                        });
-                                        break;
-
-                                    case string s when s.Contains("sugar"):
-                                        actions.Add(new {
-                                            action_id = "add_sugar",
-                                            device = "sugar_machine",
-                                            type = "adding",
-                                            parameters = new {
-                                                ingredient = ingredient.IngredientName,
-                                                required_quantity = ingredient.RequiredQuantity
-                                            },
-                                            sequence = sequence++
-                                        });
-                                        break;
-
-                                    case string s when s.Contains("ice"):
-                                        actions.Add(new {
-                                            action_id = "add_ice",
-                                            device = "ice_making_machine",
-                                            type = "adding",
-                                            parameters = new {
-                                                ingredient = ingredient.IngredientName,
-                                                required_quantity = ingredient.RequiredQuantity
-                                            },
-                                            sequence = sequence++
-                                        });
-                                        break;
-
-                                    case string s when s.Contains("water"):
-                                        actions.Add(new {
-                                            action_id = "heat_water",
-                                            device = "water_heater",
-                                            type = "heating",
-                                            parameters = new {
-                                                ingredient = ingredient.IngredientName,
-                                                required_quantity = ingredient.RequiredQuantity,
-                                            },
-                                            sequence = sequence++
-                                        });
-
-                                        actions.Add(new {
-                                            action_id = "brew_water",
-                                            device = "water_machine",
-                                            type = "brewing",
-                                            parameters = new {
-                                                drink = drink.DrinkName,
-                                                ingredient = ingredient.IngredientName
-                                            },
-                                            sequence = sequence++
-                                        });
-                                        break;
-
-                                    default:
-                                        break;
+                                if (machine == null) {
+                                    _logger.LogWarning($"No machine found");
+                                    continue;
                                 }
+
+                                var parameters = new Dictionary<string, double>();
+
+                                //foreach (var parameter in machine.Parameters) {
+                                //    if (parameter.Mode.ToLower() == step.Action.ToLower()) {
+                                //        foreach (var paramSet in step.ParametersRequired) {
+                                //            foreach (var paramKey in paramSet.Keys) {
+                                //                var paramList = paramSet[paramKey];
+                                //                if (paramList.Any()) {
+                                //                    parameters[paramKey] = paramList.First().Value;
+                                //                    actionAdded = true;
+                                //                }
+                                //            }
+                                //        }
+                                //    }
+                                //}
+
+                                foreach (var param in step.ParametersRequired) {
+                                    parameters.Add(param.Name, param.Value);
+                                }
+
+                                actions.Add(new {
+                                    action_id = $"{step.Action}_{step.Ingredient.Replace(' ', '_')}",
+                                    machine = step.MachineName,
+                                    mode = step.Action,
+                                    parameters = parameters,
+                                    sequence = sequence++
+                                });
+
                             }
-                            Debug.WriteLine($" [x] Actions: {actions}");
+
+                            Debug.WriteLine($" [x] Actions: {JsonConvert.SerializeObject(actions, Formatting.Indented)}");
 
                             var machineMessage = new {
-                                activity_id = $"machine_{drink.DrinkId}_{orderMessage.OrderId}_{i + 1}",
+                                activity_id = $"MK_{drink.DrinkId}_{orderMessage.OrderId}",
                                 name = $"Make {drink.DrinkName}",
-                                description = $"Make {drink.DrinkName} follow recipe.",
-                                actions = actions
+                                description = $"Make {drink.DrinkName} follow recipe",
+                                actions = actions,
                             };
 
-                            // Serialize message cho machine thành JSON (định dạng đẹp)
                             string machineMessageJson = JsonConvert.SerializeObject(machineMessage, Formatting.Indented);
 
-                            // Đẩy message này lên message queue "machine_queue"
                             await _rabbitMQService.SendMessageAsync("machine_queue", machineMessageJson);
                         }
                     }
@@ -215,6 +161,27 @@ namespace Services.Services {
             }
         }
 
+        //private async Task<string> GetMachineByIngredientAndModeAsync(string ingredient, string mode, IMongoDbUnitOfWork mongoDbUnitOfWork) {
+        //    var machineCollection = mongoDbUnitOfWork.GetCollection<Machine>("machines");
+
+
+        //    var machine = await machineCollection.Find(m =>
+        //        m.Ingredient.ToLower().Contains(ingredient.ToLower()) &&
+        //        m.Parameters.Any(p => p.Mode.ToLower() == mode.ToLower())
+        //    ).FirstOrDefaultAsync();
+
+        //    if (machine == null) {
+        //        _logger.LogWarning($"No machine found for Ingredient: {ingredient} with Mode: {mode}");
+        //        return string.Empty;
+        //    }
+
+        //    _logger.LogInformation($"Found machine '{machine.MachineName}' for Ingredient: {ingredient} with Mode: {mode}");
+        //    return machine.MachineName;
+
+        //}
+
+
+
         private async Task<List<dynamic>> GetDrinkDetailFromDatabaseAsync(Guid drinkId, IUnitOfWork unitOfWork) {
 
             var recipes = await unitOfWork.GetRepository<Recipe>()
@@ -222,9 +189,10 @@ namespace Services.Services {
                 .Where(r => r.DrinkId == drinkId)
                 .Include(r => r.Ingredient)
                 .ToListAsync();
+            _logger.LogInformation($" [x] Ingredient: {recipes.Count}");
 
             var ingredientDetails = recipes
-                .Where(r => r.Ingredient != null) // Ensure Ingredient is not null
+                .Where(r => r.Ingredient != null)
                 .Select(r => new {
                     IngredientId = r.Ingredient!.Id,
                     IngredientName = r.Ingredient.Name,
@@ -233,6 +201,45 @@ namespace Services.Services {
 
             return ingredientDetails;
         }
+
+        private async Task<List<DrinkRecipes>> GetDrinkRecipeFromDatabaseAsync(Guid drinkId, IMongoDbUnitOfWork mongoDbUnitOfWork) {
+
+            var recipesCollection = mongoDbUnitOfWork.GetCollection<DrinkRecipes>("recipe");
+
+            string recipeId = $"recipe_{drinkId}";
+
+            var recipe = await recipesCollection.Find(x => x.Id == recipeId).ToListAsync();
+
+            if (recipe == null || recipe.Count == 0) {
+                _logger.LogWarning($"No recipe found for DrinkId: {drinkId}");
+                return new List<DrinkRecipes>();
+            }
+
+            _logger.LogInformation($"Recipe found for DrinkId: {drinkId}, Name: {recipe.First().DrinkName}");
+
+            return recipe;
+
+        }
+
+        private async Task<List<Machine>> GetMachineDetailListNeed(List<dynamic> ingredients, IMongoDbUnitOfWork mongoDbUnitOfWork) {
+            var machines = new List<Machine>();
+            var machineCollection = mongoDbUnitOfWork.GetCollection<Machine>("machine-info");
+
+            foreach (var ingredient in ingredients) {
+                string ingName = ingredient.IngredientName.ToString().ToLower();
+
+                var machine = await machineCollection.Find(m => m.Ingredient.ToLower().Contains(ingName)).FirstOrDefaultAsync();
+
+                if (machine != null) {
+                    machines.Add(machine);
+                }
+            }
+
+            _logger.LogInformation($" [x] Machines found: {machineCollection}");
+
+            return machines;
+        }
+
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
             await StartConsumingAsync(QueueName);

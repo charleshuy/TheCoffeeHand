@@ -148,7 +148,7 @@ namespace TheCoffeeHand.Controllers
         public async Task<IActionResult> SendOrderMessage() {
             await _orderService.TestSendMessage();
 
-            return Ok("grasp");
+            return Ok("grasped");
         }
     }
 }

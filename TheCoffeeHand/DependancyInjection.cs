@@ -19,6 +19,10 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using Interfracture.MessageBroker;
+using Infrastructure.Base;
+using MongoDB.Driver;
+using Interfracture.Interfaces;
+using Repositories.Repositories;
 
 namespace TheCoffeeHand
 {
@@ -41,6 +45,7 @@ namespace TheCoffeeHand
             // Add DbContext with SQLite
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+
 
             // Add Identity
             services.AddIdentity<ApplicationUser, ApplicationRole>()
@@ -95,6 +100,14 @@ namespace TheCoffeeHand
                     cloudinarySettings.ApiSecret
                 ));
             });
+
+            // Add MongoDB Configuration
+            services.Configure<MongoDBSettings>(configuration.GetSection("MongoDBSettings"));
+
+            var mongoDbSettings = configuration.GetSection("MongoDBSettings").Get<MongoDBSettings>();
+
+            services.AddSingleton<IMongoClient>(s => new MongoClient(mongoDbSettings.ConnectionString));
+            services.AddScoped<IMongoDbUnitOfWork, MongoDbUnitOfWork>();
 
         }
 
