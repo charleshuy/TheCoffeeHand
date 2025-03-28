@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 
@@ -113,6 +114,7 @@ namespace TheCoffeeHand.Controllers
         /// <returns>No content.</returns>
         /// <response code="204">If the order is successfully deleted.</response>
         [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> DeleteOrder(Guid id)
         {
             await _orderService.DeleteOrderAsync(id);

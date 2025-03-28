@@ -43,6 +43,24 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
+    /// Logs in a user using email and password.
+    /// </summary>
+    /// <param name="request">The login request containing email and password.</param>
+    /// <returns>A JWT token if authentication is successful.</returns>
+    [HttpPost("email-login")]
+    public async Task<IActionResult> EmailLogin([FromBody] EmailLoginRequest request)
+    {
+        if (string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
+        {
+            return BadRequest(new { message = "Email and password are required." });
+        }
+
+        var jwtToken = await _firebaseAuthService.SignInWithEmailAndPasswordAsync(request.Email, request.Password);
+        return Ok(new { token = jwtToken });
+    }
+
+
+    /// <summary>
     /// Retrieves user authentication status.
     /// </summary>
     /// <returns>A success message if the user is authenticated.</returns>

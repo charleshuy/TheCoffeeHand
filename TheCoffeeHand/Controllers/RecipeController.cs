@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 using System;
@@ -30,6 +31,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="recipeDTO">The recipe details.</param>
         /// <returns>The created recipe.</returns>
         [HttpPost]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> CreateRecipe([FromBody] RecipeRequestDTO recipeDTO)
         {
             var recipe = await _recipeService.CreateRecipeAsync(recipeDTO);
@@ -88,6 +90,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="recipeDTO">The updated recipe details.</param>
         /// <returns>The updated recipe.</returns>
         [HttpPut("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> UpdateRecipe(Guid id, [FromBody] RecipeRequestDTO recipeDTO)
         {
             var existingRecipe = await _recipeService.GetRecipeByIdAsync(id);
@@ -106,6 +109,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="id">The recipe ID.</param>
         /// <returns>No content if successful.</returns>
         [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> DeleteRecipe(Guid id)
         {
             var existingRecipe = await _recipeService.GetRecipeByIdAsync(id);

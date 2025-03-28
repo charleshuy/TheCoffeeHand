@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 
@@ -28,6 +29,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="categoryDTO">The category data transfer object.</param>
         /// <returns>Returns the created category.</returns>
         [HttpPost]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> CreateCategory([FromBody] CategoryRequestDTO categoryDTO)
         {
             var category = await _categoryService.CreateCategoryAsync(categoryDTO);
@@ -72,6 +74,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="categoryDTO">The updated category data.</param>
         /// <returns>Returns the updated category.</returns>
         [HttpPut("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CategoryRequestDTO categoryDTO)
         {
             var updatedCategory = await _categoryService.UpdateCategoryAsync(id, categoryDTO);
@@ -84,6 +87,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="id">The ID of the category to delete.</param>
         /// <returns>Returns a success message upon deletion.</returns>
         [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> DeleteCategory(Guid id)
         {
             await _categoryService.DeleteCategoryAsync(id);

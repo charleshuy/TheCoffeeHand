@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 
@@ -59,6 +60,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="ingredientDTO">The ingredient data transfer object.</param>
         /// <returns>Returns the created ingredient.</returns>
         [HttpPost]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> CreateIngredient([FromBody] IngredientRequestDTO ingredientDTO)
         {
             var createdIngredient = await _ingredientService.CreateIngredientAsync(ingredientDTO);
@@ -72,6 +74,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="ingredientDTO">The updated ingredient data.</param>
         /// <returns>Returns the updated ingredient if successful, otherwise NotFound.</returns>
         [HttpPut("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> UpdateIngredient(Guid id, [FromBody] IngredientResponseDTO ingredientDTO)
         {
             var updatedIngredient = await _ingredientService.UpdateIngredientAsync(id, ingredientDTO);
@@ -86,6 +89,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="id">The ID of the ingredient to delete.</param>
         /// <returns>Returns NoContent if deletion is successful.</returns>
         [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> DeleteIngredient(Guid id)
         {
             await _ingredientService.DeleteIngredientAsync(id);

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Services.DTOs;
 using Services.ServiceInterfaces;
 
@@ -28,6 +29,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="drinkDTO">The drink data transfer object.</param>
         /// <returns>Returns the created drink.</returns>
         [HttpPost]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> CreateDrink([FromBody] DrinkRequestDTO drinkDTO)
         {
             var result = await _drinkService.CreateDrinkAsync(drinkDTO);
@@ -97,6 +99,7 @@ namespace TheCoffeeHand.Controllers
         /// <param name="drinkDTO">The updated drink data.</param>
         /// <returns>Returns the updated drink.</returns>
         [HttpPut("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> UpdateDrink(Guid id, [FromBody] DrinkRequestDTO drinkDTO)
         {
             var updatedDrink = await _drinkService.UpdateDrinkAsync(id, drinkDTO);
@@ -108,6 +111,7 @@ namespace TheCoffeeHand.Controllers
         /// </summary>
         /// <param name="id">The ID of the drink to delete.</param>
         [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")]
         public async Task<IActionResult> DeleteDrink(Guid id)
         {
             await _drinkService.DeleteDrinkAsync(id);

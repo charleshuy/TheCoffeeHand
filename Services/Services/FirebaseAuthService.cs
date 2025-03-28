@@ -15,11 +15,13 @@ namespace Services.Services
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public FirebaseAuthService(UserManager<ApplicationUser> userManager, IConfiguration configuration)
+        public FirebaseAuthService(UserManager<ApplicationUser> userManager, IConfiguration configuration, SignInManager<ApplicationUser> signInManager)
         {
             _userManager = userManager;
             _configuration = configuration;
+            _signInManager = signInManager;
         }
 
         public async Task<string> SignInWithFirebaseAsync(string idToken, string? fcmToken)
@@ -79,6 +81,23 @@ namespace Services.Services
             {
                 throw new Exception("Invalid Firebase token.");
             }
+        }
+
+        public async Task<string> SignInWithEmailAndPasswordAsync(string email, string password)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                throw new BaseException.NotFoundException("user_not_found", "User not found.");
+            }
+
+            var result = await _signInManager.CheckPasswordSignInAsync(user, password, false);
+            if (!result.Succeeded)
+            {
+                throw new BaseException.UnauthorizedException("invalid_credentials", "Invalid email or password.");
+            }
+
+            return await GenerateJwtToken(user, _userManager);
         }
 
         private async Task<string> GenerateJwtToken(ApplicationUser user, UserManager<ApplicationUser> userManager)
