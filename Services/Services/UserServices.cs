@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Domain.Base;
+using Domain.Entities;
 using Interfracture.Entities;
 using Interfracture.Interfaces;
 using Interfracture.PaggingItems;
@@ -192,6 +193,7 @@ namespace Services.Services
             if (user == null) throw new BaseException.UnauthorizedException("unauthenticated", "Require authentication"); ;
             return user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
+
 
         public async Task DeleteUserAsync(Guid id)
         {

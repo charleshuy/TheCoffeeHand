@@ -17,21 +17,19 @@ namespace TheCoffeeHand {
             builder.Services.AddApplication(builder.Configuration);
 
             // Thêm cấu hình CORS
-            builder.Services.AddCors(options => {
-                options.AddPolicy("AllowLocalhost3000", policy => {
-                    policy.WithOrigins("http://localhost:3000")
-                          .AllowAnyHeader()
-                          .AllowAnyMethod();
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigins", policy =>
+                {
+                    policy.WithOrigins(
+                            "http://localhost:3000",
+                            "https://the-coffee-hand-fe.vercel.app"
+                        )
+                        .AllowAnyHeader()
+                        .AllowAnyMethod();
                 });
             });
 
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowVercel",
-                    policy => policy.WithOrigins("https://the-coffee-hand-fe.vercel.app")
-                                    .AllowAnyHeader()
-                                    .AllowAnyMethod());
-            });
 
             var app = builder.Build();
 
@@ -54,8 +52,8 @@ namespace TheCoffeeHand {
 
             app.UseHttpsRedirection();
 
-            app.UseCors("AllowLocalhost3000");
-            app.UseCors("AllowVercel");
+            app.UseCors("AllowSpecificOrigins");
+
 
 
             app.UseMiddleware<ExceptionMiddleware>();

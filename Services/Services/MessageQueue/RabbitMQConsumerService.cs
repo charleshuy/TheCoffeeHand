@@ -1,28 +1,18 @@
-﻿using CloudinaryDotNet.Core;
-using Core.Utils;
-using Domain.Entities;
+﻿using Domain.Entities;
 using Domain.Entities.CoffeeMachine;
-using FirebaseAdmin.Messaging;
 using Interfracture.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.IdentityModel.Tokens;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Services.ServiceInterfaces;
 using Services.Services.MessageQueue;
-using System;
 using System.Diagnostics;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Services.Services {
     public class RabbitMQConsumerService: BackgroundService, IRabbitMQConsumerService {

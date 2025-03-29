@@ -46,6 +46,8 @@ namespace TheCoffeeHand
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
+            services.AddHttpContextAccessor();
+
 
             // Add Identity
             services.AddIdentity<ApplicationUser, ApplicationRole>()

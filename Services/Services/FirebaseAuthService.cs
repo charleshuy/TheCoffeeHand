@@ -229,6 +229,67 @@ namespace Services.Services
                 throw new BaseException.CoreException("email_verification_failed", "Failed to send verification email.");
         }
 
+        public async Task DisableUserAsync(string email)
+        {
+            // ✅ Find user in Identity
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                throw new BaseException.NotFoundException("user_not_found", "User not found.");
+
+            // ✅ Disable Firebase user
+            try
+            {
+                var firebaseUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email);
+                await FirebaseAuth.DefaultInstance.UpdateUserAsync(new UserRecordArgs
+                {
+                    Uid = firebaseUser.Uid,
+                    Disabled = true
+                });
+            }
+            catch (FirebaseAuthException)
+            {
+                throw new BaseException.CoreException("firebase_error", "Failed to disable Firebase user.");
+            }
+
+            // ✅ Disable user in database
+            user.IsActive = false;
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                throw new BaseException.CoreException("db_update_failed", "Failed to disable user in database.");
+            }
+        }
+
+        public async Task EnableUserAsync(string email)
+        {
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                throw new BaseException.NotFoundException("user_not_found", "User not found.");
+
+            try
+            {
+                var firebaseUser = await FirebaseAuth.DefaultInstance.GetUserByEmailAsync(email);
+                await FirebaseAuth.DefaultInstance.UpdateUserAsync(new UserRecordArgs
+                {
+                    Uid = firebaseUser.Uid,
+                    Disabled = false
+                });
+            }
+            catch (FirebaseAuthException)
+            {
+                throw new BaseException.CoreException("firebase_error", "Failed to enable Firebase user.");
+            }
+
+            user.IsActive = true;
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                throw new BaseException.CoreException("db_update_failed", "Failed to enable user in database.");
+            }
+        }
+
+
+
 
         private async Task<string> GenerateJwtToken(ApplicationUser user, UserManager<ApplicationUser> userManager)
         {

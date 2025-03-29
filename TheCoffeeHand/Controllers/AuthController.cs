@@ -173,4 +173,41 @@ public class AuthController : ControllerBase
         return Ok(new { message = $"User with ID {id} has been deleted successfully." });
     }
 
+    /// <summary>
+    /// Disables a user by email.
+    /// </summary>
+    /// <param name="email">The email of the user to disable.</param>
+    /// <returns>A success message if disabling is successful.</returns>
+    [HttpPost("disable")]
+    // [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")] // Optional: protect this route
+    public async Task<IActionResult> DisableUser([FromQuery] string email)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            return BadRequest(new { message = "Email is required." });
+        }
+
+        await _firebaseAuthService.DisableUserAsync(email);
+        return Ok(new { message = $"User with email '{email}' has been disabled successfully." });
+    }
+
+    /// <summary>
+    /// Enables a user by email.
+    /// </summary>
+    /// <param name="email">The email of the user to enable.</param>
+    /// <returns>A success message if enabling is successful.</returns>
+    [HttpPost("enable")]
+    // [Authorize(AuthenticationSchemes = "Firebase,Jwt", Roles = "Admin")] // Optional
+    public async Task<IActionResult> EnableUser([FromQuery] string email)
+    {
+        if (string.IsNullOrEmpty(email))
+        {
+            return BadRequest(new { message = "Email is required." });
+        }
+
+        await _firebaseAuthService.EnableUserAsync(email);
+        return Ok(new { message = $"User with email '{email}' has been enabled successfully." });
+    }
+
+
 }

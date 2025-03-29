@@ -6,5 +6,7 @@
         Task<string> SignInWithEmailAndPasswordAsync(string email, string password);
         Task RegisterWithEmailPasswordFireBaseAsync(string email, string password);
         Task<string> SignInWithEmailAndPasswordFirebaseAsync(string email, string password);
+        Task DisableUserAsync(string email);
+        Task EnableUserAsync(string email);
     }
 }
