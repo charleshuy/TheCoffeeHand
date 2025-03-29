@@ -348,7 +348,9 @@ namespace Services.Services
         public async Task<OrderResponseDTO> GetCartAsync()
         {
 
-            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var userId = _httpContextAccessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+             ?? _httpContextAccessor.HttpContext?.User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value;
+
             if (userId == null)
                 throw new BadRequestException("not_found", "User not found");
 
