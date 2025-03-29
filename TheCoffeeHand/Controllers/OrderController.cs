@@ -61,6 +61,7 @@ namespace TheCoffeeHand.Controllers
         /// Retrieves cart for current user.
         /// </summary>
         [HttpGet("cart")]
+        [Authorize(AuthenticationSchemes = "Firebase,Jwt")]
         public async Task<IActionResult> GetCart()
         {
             var order = await _orderService.GetCartAsync();

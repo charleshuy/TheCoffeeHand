@@ -31,6 +31,8 @@ namespace TheCoffeeHand {
             });
 
 
+            builder.Services.AddHttpContextAccessor();
+
             var app = builder.Build();
 
             // Seed data
